@@ -1,7 +1,11 @@
 CC=avr-gcc
 CXX=avr-g++
-MCU=-mmcu=atmega328p 
-CPU_SPEED=-DF_CPU=16000000UL # 16 Mhz
+MCU = -mmcu=atmega328p
+#MCU = -mmcu=at90usb162		# Teensy 1.0
+#MCU = -mmcu=atmega32u4		# Teensy 2.0
+#MCU = -mmcu=at90usb646		# Teensy++ 1.0
+#MCU = -mmcu=at90usb1286	# Teensy++ 2.0
+CPU_SPEED = -DF_CPU=16000000UL	# 16 Mhz
 LIBNAME=arduino-lib/lib/libarduino.a
 INCDIR=arduino-lib/include
 CFLAGS=$(MCU) $(CPU_SPEED) -Os -w -I $(INCDIR)

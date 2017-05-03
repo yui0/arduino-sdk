@@ -3,8 +3,12 @@ CC=avr-gcc
 CXX=avr-g++
 INCLUDE=-I ../arduino-lib/include
 LIBS=-L ../arduino-lib/lib -lm ../arduino-lib/lib/libarduino.a
-MCU=-mmcu=atmega328p
-CPU_SPEED=-DF_CPU=16000000UL
+MCU = -mmcu=atmega328p
+#MCU = -mmcu=at90usb162		# Teensy 1.0
+#MCU = -mmcu=atmega32u4		# Teensy 2.0
+#MCU = -mmcu=at90usb646		# Teensy++ 1.0
+#MCU = -mmcu=at90usb1286	# Teensy++ 2.0
+CPU_SPEED = -DF_CPU=16000000UL	# 16 Mhz
 CFLAGS=$(MCU) $(CPU_SPEED) -Os -w -Wl,--gc-sections -ffunction-sections -fdata-sections
 
 # FreeBSD
