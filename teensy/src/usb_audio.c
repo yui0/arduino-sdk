@@ -1,4 +1,3 @@
-//#define USB_AUDIO
 #define myType uint8_t
 #define AUDIO_CONTROL_INTERFACE
 

@@ -10,6 +10,7 @@ Programming Arduino/Teensy in pure C or C++
 
 ```bash
 $ make
+$ make upload
 ```
 
 ## Packages to install (Arduino)

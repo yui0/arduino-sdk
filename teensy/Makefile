@@ -128,13 +128,15 @@ build: $(TARGET).elf
 
 hex: $(TARGET).hex
 
+blink:
+	@$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -w -v teensy36-led.hex
+
 post_compile: $(TARGET).hex
-	@$(abspath $(TOOLSPATH))/teensy_loader_cli -w -v "$(basename $<)"
-#	@$(abspath $(TOOLSPATH))/teensy_post_compile -file="$(basename $<)" -path=$(CURDIR) -tools="$(abspath $(TOOLSPATH))"
+	@$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -w -v "$(basename $<)".hex
 
 reboot:
-	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -r
-#	@-$(abspath $(TOOLSPATH))/teensy_reboot
+	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -r
+#	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -w -v $(abspath $(TOOLSPATH))/teensy_loader_cli_src/rebootor/rebootor.hex
 
 upload: post_compile reboot
 

@@ -1,7 +1,7 @@
-//#define USB_AUDIO
+// ©2017 Yuichiro Nakada
+
 #include "usb_audio.h"
 usb_audio_class Audio;
-
 #include "WProgram.h"
 
 #define MAX_BUFFER_SIZE 96
@@ -12,8 +12,8 @@ uint16_t audioBufferRX[MAX_BUFFER_SIZE];
 uint8_t bufferLength;
 uint8_t sampleSize;
 
-bool tx_active = false;
-bool rx_active = false;
+bool tx_active = false;	// transmitter
+bool rx_active = false;	// receiver
 
 void initTX()
 {
@@ -40,6 +40,7 @@ void setup()
 	initRX();
 
 	Audio.begin();
+	pinMode(13, OUTPUT);
 }
 
 void loop()
@@ -62,6 +63,8 @@ void loop()
 			rx_active = false;
 		} else {
 			Audio.recvAudio(audioBufferRX, sampleSize*bufferLength);
+if (audioBufferRX[0]<0x80) digitalWriteFast(13, HIGH);
+else digitalWriteFast(13, LOW);
 		}
 	} else {
 		if (Audio.getAlternateSettingRX()) {
