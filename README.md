@@ -11,6 +11,7 @@ Programming Arduino/Teensy in pure C or C++
 ```bash
 $ make
 $ make upload
+$ make blink
 ```
 
 ## Packages to install (Arduino)
