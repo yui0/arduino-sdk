@@ -30,11 +30,11 @@ public:
 	};
 	uint8_t sendAudio(const void *data, uint8_t length)
 	{
-		return usb_audio_write_data(data,length);
+		return usb_audio_write_data(data, length);
 	};
 	uint8_t recvAudio(const void *data, uint8_t length)
 	{
-		return usb_audio_read_data(data,length);
+		return usb_audio_read_data(data, length);
 	};
 	uint8_t getAlternateSettingTX()
 	{

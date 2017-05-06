@@ -42,8 +42,8 @@
 #ifndef SERIAL2_RX_BUFFER_SIZE
 #define SERIAL2_RX_BUFFER_SIZE     64 // number of incoming bytes to buffer
 #endif
-#define RTS_HIGH_WATERMARK 40 // RTS requests sender to pause
-#define RTS_LOW_WATERMARK  26 // RTS allows sender to resume
+#define RTS_HIGH_WATERMARK (SERIAL2_RX_BUFFER_SIZE-24) // RTS requests sender to pause
+#define RTS_LOW_WATERMARK  (SERIAL2_RX_BUFFER_SIZE-38) // RTS allows sender to resume
 #define IRQ_PRIORITY  64  // 0 = highest priority, 255 = lowest
 
 ////////////////////////////////////////////////////////////////
@@ -120,15 +120,17 @@ void serial2_begin(uint32_t divisor)
 #if defined(KINETISK)
 	switch (rx_pin_num) {
 		case 9: CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
+		#if defined(__MK20DX128__) || defined(__MK20DX256__)    // T3.0, T3.1, T3.2
 		case 26: CORE_PIN26_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
-		#if defined(__MK64FX512__) || defined(__MK66FX1M0__)  // on T3.5 or T3.6
+		#elif defined(__MK64FX512__) || defined(__MK66FX1M0__)  // T3.5 or T3.6
 		case 59: CORE_PIN59_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
 		#endif
 	}
 	switch (tx_pin_num) {
 		case 10: CORE_PIN10_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
+		#if defined(__MK20DX128__) || defined(__MK20DX256__)    // T3.0, T3.1, T3.2
 		case 31: CORE_PIN31_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
-		#if defined(__MK64FX512__) || defined(__MK66FX1M0__)  // on T3.5 or T3.6
+		#elif defined(__MK64FX512__) || defined(__MK66FX1M0__)  // T3.5 or T3.6
 		case 58: CORE_PIN58_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
 		#endif
 	}
@@ -563,8 +565,11 @@ void uart1_status_isr(void)
 	}
 #else
 	if (UART1_S1 & UART_S1_RDRF) {
-		n = UART1_D;
-		if (use9Bits && (UART1_C3 & 0x80)) n |= 0x100;
+		if (use9Bits && (UART1_C3 & 0x80)) {
+			n = UART1_D | 0x100;
+		} else {
+			n = UART1_D;
+		}
 		head = rx_buffer_head + 1;
 		if (head >= SERIAL2_RX_BUFFER_SIZE) head = 0;
 		if (head != rx_buffer_tail) {

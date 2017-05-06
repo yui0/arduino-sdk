@@ -35,7 +35,7 @@ volatile uint8_t usb_audio_transmit_flush_timer = 0;
 
 void usb_audio_set_alternate_setting_tx(uint8_t alt_set)
 {
-	audio_streaming_tx_alternate_setting=alt_set;
+	audio_streaming_tx_alternate_setting = alt_set;
 }
 uint8_t usb_audio_get_alternate_setting_tx()
 {
@@ -44,7 +44,7 @@ uint8_t usb_audio_get_alternate_setting_tx()
 
 void usb_audio_set_alternate_setting_rx(uint8_t alt_set)
 {
-	audio_streaming_rx_alternate_setting=alt_set;
+	audio_streaming_rx_alternate_setting = alt_set;
 }
 uint8_t usb_audio_get_alternate_setting_rx()
 {
@@ -56,19 +56,17 @@ uint8_t usb_audio_write_data(const void *data, uint8_t length)
 	uint32_t len;
 	uint32_t wait_count = 0;
 	const myType *src = (myType *)data;
+
 	myType *dest;
 	tx_noautoflush = 1;
 	while (length > 0) {
 		if (!tx_packet) {
 			while (1) {
-				if (!usb_configuration) {
-					return -1;
-				}
+				if (!usb_configuration) return -1;
+
 				if (usb_tx_packet_count(AUDIO_TX_ENDPOINT) < TX_PACKET_LIMIT) {
 					tx_packet = usb_malloc();
-					if (tx_packet) {
-						break;
-					}
+					if (tx_packet) break;
 				}
 				if (++wait_count > TX_TIMEOUT || tx_transmit_previous_timeout) {
 					tx_transmit_previous_timeout = 1;
@@ -108,15 +106,12 @@ uint8_t usb_audio_read_data(const void* data, uint8_t length)
 	myType *dest = (myType *)data;
 
 	while (length > 0) {
-		if (!usb_configuration) {
-			break;
-		}
+		if (!usb_configuration) break;
+
 		if (!rx_packet) {
 rx:
 			rx_packet = usb_rx(AUDIO_RX_ENDPOINT);
-			if (!rx_packet) {
-				break;
-			}
+			if (!rx_packet) break;
 			if (rx_packet->len == 0) {
 				usb_free(rx_packet);
 				goto rx;
@@ -139,11 +134,10 @@ rx:
 	return count;
 }
 
-void usb_audio_flush_callback(void)
+void usb_audio_flush_callback()
 {
-	if (tx_noautoflush) {
-		return;
-	}
+	if (tx_noautoflush) return;
+
 	if (tx_packet) {
 		tx_packet->len = tx_packet->index;
 		usb_tx(AUDIO_TX_ENDPOINT, tx_packet);
@@ -158,7 +152,8 @@ void usb_audio_flush_callback(void)
 	}
 }
 
-/* void usb_audio_send_audio(){
+/*void usb_audio_send_audio()
+{
 	uint16_t wait_count=0;
 	tx_noautoflush = 1;
 	if (!tx_packet) {
@@ -182,7 +177,8 @@ void usb_audio_flush_callback(void)
 	tx_noautoflush = 0;
 }
 
-void usb_audio_flush_callback(void){
+void usb_audio_flush_callback()
+{
 	if (!audio_streaming_alternate_setting) return;
 	if (!tx_packet) {
 		tx_packet = usb_malloc();
@@ -196,7 +192,7 @@ void usb_audio_flush_callback(void){
 	}
 	tx_packet->len = AUDIO_TX_SIZE;
 	usb_tx(AUDIO_TX_ENDPOINT, tx_packet);
-} */
+}*/
 
 void usb_audio_begin()
 {

@@ -52,8 +52,8 @@
 #ifndef SERIAL6_RX_BUFFER_SIZE
 #define SERIAL6_RX_BUFFER_SIZE     64 // number of incoming bytes to buffer
 #endif
-#define RTS_HIGH_WATERMARK 40 // RTS requests sender to pause
-#define RTS_LOW_WATERMARK  26 // RTS allows sender to resume
+#define RTS_HIGH_WATERMARK (SERIAL6_RX_BUFFER_SIZE-24) // RTS requests sender to pause
+#define RTS_LOW_WATERMARK  (SERIAL6_RX_BUFFER_SIZE-38) // RTS allows sender to resume
 #define IRQ_PRIORITY  64  // 0 = highest priority, 255 = lowest
 
 
@@ -93,7 +93,7 @@ static volatile uint8_t rx_buffer_head = 0;
 static volatile uint8_t rx_buffer_tail = 0;
 #endif
 
-static uint8_t tx_pin_num = 34;
+static uint8_t tx_pin_num = 48;
 
 // UART0 and UART1 are clocked by F_CPU, UART2 is clocked by F_BUS
 // UART0 has 8 byte fifo, UART1 and UART2 have 1 byte buffer
@@ -254,7 +254,7 @@ void serial6_set_tx(uint8_t pin, uint8_t opendrain)
 
 	if (opendrain) pin |= 128;
 	if (pin == tx_pin_num) return;
-	if ((SIM_SCGC4 & SIM_SCGC4_UART2)) {
+	if ((SIM_SCGC2 & SIM_SCGC2_LPUART0)) {
 		switch (tx_pin_num & 127) {
 			case 48:  CORE_PIN48_CONFIG = 0; break; // PTE24
 		}
@@ -264,7 +264,7 @@ void serial6_set_tx(uint8_t pin, uint8_t opendrain)
 			cfg = PORT_PCR_DSE | PORT_PCR_SRE;
 		}
 		switch (pin & 127) {
-			case 48:  CORE_PIN48_CONFIG = cfg | PORT_PCR_MUX(3); break;
+			case 48:  CORE_PIN48_CONFIG = cfg | PORT_PCR_MUX(5); break;
 		}
 	}
 	tx_pin_num = pin;
@@ -292,7 +292,7 @@ int serial6_set_cts(uint8_t pin)
 {
 	if (!(SIM_SCGC2 & SIM_SCGC2_LPUART0)) return 0;
 	if (pin == 56) {
-		CORE_PIN56_CONFIG = PORT_PCR_MUX(3) | PORT_PCR_PE; // weak pulldown
+		CORE_PIN56_CONFIG = PORT_PCR_MUX(5) | PORT_PCR_PE; // weak pulldown
 	} else {
 		UART5_MODEM &= ~UART_MODEM_TXCTSE;
 		return 0;

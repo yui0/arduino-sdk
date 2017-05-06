@@ -42,8 +42,8 @@
 #ifndef SERIAL3_RX_BUFFER_SIZE
 #define SERIAL3_RX_BUFFER_SIZE     64 // number of incoming bytes to buffer
 #endif
-#define RTS_HIGH_WATERMARK 40 // RTS requests sender to pause
-#define RTS_LOW_WATERMARK  26 // RTS allows sender to resume
+#define RTS_HIGH_WATERMARK (SERIAL3_RX_BUFFER_SIZE-24) // RTS requests sender to pause
+#define RTS_LOW_WATERMARK  (SERIAL3_RX_BUFFER_SIZE-38) // RTS allows sender to resume
 #define IRQ_PRIORITY  64  // 0 = highest priority, 255 = lowest
 
 
@@ -181,8 +181,19 @@ void serial3_end(void)
 	while (transmitting) yield();  // wait for buffered data to send
 	NVIC_DISABLE_IRQ(IRQ_UART2_STATUS);
 	UART2_C2 = 0;
+	#if defined(KINETISK)
 	CORE_PIN7_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
 	CORE_PIN8_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+	#elif defined(KINETISL)
+	switch (rx_pin_num) {
+		case 7: CORE_PIN7_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
+		case 6: CORE_PIN6_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
+	}
+	switch (tx_pin_num & 127) {
+		case 8:  CORE_PIN8_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
+		case 20: CORE_PIN20_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
+	}
+	#endif	
 	rx_buffer_head = 0;
 	rx_buffer_tail = 0;
 	if (rts_pin) rts_deassert();
