@@ -1,0 +1,38 @@
+// ©2017 Yuichiro Nakada
+#include "WProgram.h"
+#include "AudioStream.h"
+#include "output_pwm.h"
+
+AudioInputUSB usb;
+AudioOutputPWM pwm;
+AudioConnection conn(usb, 0, pwm, 0);
+
+void setup()
+{
+	delay(250); AudioMemory(10); delay(250);
+
+	pinMode(13, OUTPUT);
+
+//	pinMode(3, OUTPUT);
+//	pinMode(4, OUTPUT);
+	analogWriteResolution(8);	// 8bit/Resolution (234375 Hz)
+	pinMode(9, OUTPUT);
+	analogWriteFrequency(9, 234375);
+}
+
+void loop()
+{
+	if (usb_audio_receive_buffer[0]<0x7fff) digitalWriteFast(13, LOW);
+	else digitalWriteFast(13, HIGH);
+	delay(10);
+}
+
+extern "C" int main()
+{
+	setup();
+	while (1) {
+		loop();
+		yield();
+	}
+}
+

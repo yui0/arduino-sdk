@@ -1,0 +1,40 @@
+// http://jamesgregson.blogspot.jp/2013/01/periodic-interrupt-timers-on-teensy-30.html
+#include "WProgram.h"
+
+#define TIMER 50000000
+
+#define TEN 0x1
+#define TIE 0x2
+
+void pit0_isr()
+{
+	digitalWrite(13, !digitalRead(13));
+	PIT_TFLG0 = 1;
+}
+
+void setup()
+{
+	pinMode(13, OUTPUT);
+	SIM_SCGC6 |= SIM_SCGC6_PIT;	// Enables/disables clock used by PIT timers
+	PIT_MCR = 0x00;			// Enables[0] and disables[1] the PIT timers
+	NVIC_ENABLE_IRQ(IRQ_PIT_CH0);
+	PIT_LDVAL0 = TIMER;		// Sets the timer count value (50MHz)
+	PIT_TCTRL0 = TIE;
+	PIT_TCTRL0 |= TEN;
+	PIT_TFLG0 |= 1;			// Flag to indicate timer waiting
+}
+
+void loop()
+{
+	delay(2000);
+}
+
+extern "C" int main()
+{
+	setup();
+	while (1) {
+		loop();
+		yield();
+	}
+}
+
