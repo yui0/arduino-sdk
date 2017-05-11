@@ -2,28 +2,20 @@
 
 #include "WProgram.h"
 
-#define TIMER 50000000 / 44100
+#define TIME	1000000/44100
 
-#define TEN 0x1
-#define TIE 0x2
-
-void pit0_isr()
+void timerCallback0()
 {
 	//digitalWrite(13, !digitalRead(13));
-	analogWrite(9, usb_audio_receive_buffer[0]/256);
-	PIT_TFLG0 = 1;
+//	analogWrite(9, usb_audio_receive_buffer[0]/256);
+
+	uint32_t a;
+	fifo_read(&usb_audio_fifo, &a);
+	analogWrite(9, a&0xffff);
 }
 
 void setup()
 {
-	SIM_SCGC6 |= SIM_SCGC6_PIT;	// Enables/disables clock used by PIT timers
-	PIT_MCR = 0x00;			// Enables[0] and disables[1] the PIT timers
-	NVIC_ENABLE_IRQ(IRQ_PIT_CH0);
-	PIT_LDVAL0 = TIMER;		// Sets the timer count value (50MHz)
-	PIT_TCTRL0 = TIE;
-	PIT_TCTRL0 |= TEN;
-	PIT_TFLG0 |= 1;			// Flag to indicate timer waiting
-
 	pinMode(13, OUTPUT);
 
 	analogWriteResolution(8);	// 8bit/Resolution (234375 Hz)
@@ -41,9 +33,13 @@ void loop()
 extern "C" int main()
 {
 	setup();
+
+	IntervalTimer timer0;
+	timer0.begin(timerCallback0, TIME);
 	while (1) {
 		loop();
 		yield();
 	}
+	timer0.end();
 }
 
