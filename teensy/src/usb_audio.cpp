@@ -11,16 +11,30 @@ void timerCallback0()
 
 	uint32_t a;
 	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(9, a&0xffff);
+	analogWrite(6, a&0xff);
+	analogWrite(7, (a>>8)&0xff);
+	analogWrite(8, (a>>16)&0xff);
+	analogWrite(9, a>>24);
+	//analogWrite(9, a&0xffff);
 }
 
 void setup()
 {
 	pinMode(13, OUTPUT);
 
-	analogWriteResolution(8);	// 8bit/Resolution (234375 Hz)
+	pinMode(6, OUTPUT);
+	analogWriteFrequency(6, 234375);
+	pinMode(7, OUTPUT);
+	analogWriteFrequency(7, 234375);
+	pinMode(8, OUTPUT);
+	analogWriteFrequency(8, 234375);
 	pinMode(9, OUTPUT);
-	analogWriteFrequency(9, 234375);
+//	analogWriteFrequency(9, 234375);
+	analogWriteFrequency(9, 160000);
+
+	analogWriteResolution(8);	// 8bit/Resolution (234375 Hz)
+	//analogWriteResolution(16);	// 8bit/Resolution (915527 Hz)
+	//analogWriteFrequency(9, 915527);
 }
 
 void loop()

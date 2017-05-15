@@ -20,6 +20,7 @@ int fifo_read(struct fifo_t *f, uint32_t *a)
 			f->tail = 0;
 		}
 	} else {
+		*a = 0;
 		return 0; // number of bytes read
 	}
 	return 1;
@@ -187,6 +188,7 @@ unsigned int usb_audio_transmit_callback()
 		}
 	}
 	return target * 4;*/
+	return 45*4;
 }
 
 
