@@ -22,7 +22,7 @@ void timerCallback0()
 	analogWrite(A21, a);
 	//tone(A21, r/100);
 #else
-	uint8_t a;
+	/*uint8_t a;
 	fifo_read(&usb_audio_fifo, &a);
 	analogWrite(8, a);
 	fifo_read(&usb_audio_fifo, &a);
@@ -30,10 +30,21 @@ void timerCallback0()
 	fifo_read(&usb_audio_fifo, &a);
 	analogWrite(10, a);
 	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(11, a);
+	analogWrite(11, a);*/
+
+	uint32_t a;
+	if (!fifo_read(&usb_audio_fifo, &a)) return;
+	analogWrite(8, (int8_t)(a&0xff));
+	analogWrite(9, (int8_t)((a>>8)&0xff));
+	analogWrite(10, (int8_t)((a>>16)&0xff));
+	analogWrite(11, (int8_t)(a>>24));
 
 	// DAC
-	analogWrite(A21, a);
+	int8_t d = (int8_t)(a>>24);
+	analogWrite(A21, d);
+	//int16_t d = (int16_t)(a>>16)+32767;
+	//analogWrite(A21, d/256);
+//	analogWrite(A21, a);
 	/*static int n = 0;
 	analogWrite(A21, usb_audio_receive_buffer[n]/256);
 	n += 2;
@@ -48,14 +59,14 @@ void timerCallback0()
 	//analogWrite(9, a&0xffff);
 
 	// GPIO
-	digitalWriteFast(0, a&0x01);
-	digitalWriteFast(1, a&0x02);
-	digitalWriteFast(2, a&0x04);
-	digitalWriteFast(3, a&0x08);
-	digitalWriteFast(4, a&0x10);
-	digitalWriteFast(5, a&0x20);
-	digitalWriteFast(6, a&0x40);
-	digitalWriteFast(7, a&0x80);
+	digitalWriteFast(0, d&0x01);
+	digitalWriteFast(1, d&0x02);
+	digitalWriteFast(2, d&0x04);
+	digitalWriteFast(3, d&0x08);
+	digitalWriteFast(4, d&0x10);
+	digitalWriteFast(5, d&0x20);
+	digitalWriteFast(6, d&0x40);
+	digitalWriteFast(7, d&0x80);
 }
 
 void setup()
