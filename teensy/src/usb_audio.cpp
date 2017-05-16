@@ -14,7 +14,13 @@ void timerCallback0()
 	// sin wave
 	static int r = 0;
 	uint32_t a = sin(r/100.0 * 2*3.14)*255; r++;
+	analogWrite(8, a);
 	analogWrite(9, a);
+	analogWrite(10, a);
+	analogWrite(11, a);
+
+	analogWrite(A21, a);
+	//tone(A21, r/100);
 #else
 	uint8_t a;
 	fifo_read(&usb_audio_fifo, &a);
@@ -25,6 +31,13 @@ void timerCallback0()
 	analogWrite(10, a);
 	fifo_read(&usb_audio_fifo, &a);
 	analogWrite(11, a);
+
+	// DAC
+	analogWrite(A21, a);
+	/*static int n = 0;
+	analogWrite(A21, usb_audio_receive_buffer[n]/256);
+	n += 2;
+	if (n>=180*2) n = 0;*/
 #endif
 
 	// PWM
