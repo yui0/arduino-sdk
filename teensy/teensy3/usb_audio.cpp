@@ -11,7 +11,7 @@
 // https://forum.pjrc.com/threads/34855-Distorted-audio-when-using-USB-input-on-Teensy-3-1
 //#define MACOSX_ADAPTIVE_LIMIT
 
-int fifo_read(struct fifo_t *f, uint32_t *a)
+int fifo_read(struct fifo_t *f, uint8_t *a)
 {
 	if (f->tail != f->head) {		// see if any data is available
 		*a = f->buf[f->tail];		// grab a byte from the buffer
@@ -26,9 +26,9 @@ int fifo_read(struct fifo_t *f, uint32_t *a)
 	return 1;
 }
 
-int fifo_write(struct fifo_t *f, const uint32_t *buf, int nbytes)
+int fifo_write(struct fifo_t *f, const uint8_t *buf, int nbytes)
 {
-	const uint32_t *p = buf;
+	const uint8_t *p = buf;
 
 	for (int i=0; i<nbytes; i++) {
 		// first check to see if there is space in the buffer
@@ -45,9 +45,9 @@ int fifo_write(struct fifo_t *f, const uint32_t *buf, int nbytes)
 	return nbytes;
 }
 
-uint32_t usb_audio_data[256*2];
+uint8_t usb_audio_data[8192/*256*/*2];
 struct fifo_t usb_audio_fifo = {
-	usb_audio_data, 0, 0, 256,
+	usb_audio_data, 0, 0, /*256*/8192,
 };
 
 
@@ -63,8 +63,8 @@ uint8_t usb_audio_receive_setting = 0;
 // we must completely remove it from the receive buffer before returning
 void usb_audio_receive_callback(unsigned int len)
 {
-	len >>= 2; // 1 sample = 4 bytes: 2 left, 2 right
-	fifo_write(&usb_audio_fifo, (uint32_t*)usb_audio_receive_buffer, len);
+	//len >>= 2; // 1 sample = 4 bytes: 2 left, 2 right
+	fifo_write(&usb_audio_fifo, (uint8_t*)usb_audio_receive_buffer, len);
 
 	/*unsigned int count, avail;
 	audio_block_t *left, *right;

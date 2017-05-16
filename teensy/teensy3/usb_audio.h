@@ -21,13 +21,13 @@ extern uint8_t usb_audio_receive_setting;
 extern uint8_t usb_audio_transmit_setting;
 
 struct fifo_t {
-	uint32_t *buf;
+	uint8_t *buf;
 	int head;
 	int tail;
 	int size;
 };
 extern struct fifo_t usb_audio_fifo;
-int fifo_read(struct fifo_t *f, uint32_t *a);
+int fifo_read(struct fifo_t *f, uint8_t *a);
 #ifdef __cplusplus
 }
 
