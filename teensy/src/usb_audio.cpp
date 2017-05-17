@@ -8,7 +8,6 @@
 void timerCallback0()
 {
 	//digitalWrite(13, !digitalRead(13));
-//	analogWrite(9, usb_audio_receive_buffer[0]/256);
 
 #if 0
 	// sin wave
@@ -17,7 +16,7 @@ void timerCallback0()
 	analogWrite(8, a);
 	analogWrite(9, a);
 	analogWrite(10, a);
-	analogWrite(11, a);
+	analogWrite(11, a);	// Not PWM!
 
 	analogWrite(A21, a);
 	//tone(A21, r/100);
@@ -39,11 +38,11 @@ void timerCallback0()
 	analogWrite(30, (r>>8));
 
 	// DAC
-	uint8_t d = r>>8;
-	analogWrite(A21, d);
+	analogWrite(A21, r>>4);	// 12bit??
 #endif
 
 	// GPIO
+	uint8_t d = r>>8;
 	digitalWriteFast(0, d&0x01);
 	digitalWriteFast(1, d&0x02);
 	digitalWriteFast(2, d&0x04);
