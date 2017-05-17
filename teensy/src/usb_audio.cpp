@@ -34,13 +34,21 @@ void timerCallback0()
 
 	uint32_t a;
 	if (!fifo_read(&usb_audio_fifo, &a)) return;
-	analogWrite(8, (int8_t)(a&0xff));
+	/*analogWrite(8, (int8_t)(a&0xff));
 	analogWrite(9, (int8_t)((a>>8)&0xff));
 	analogWrite(10, (int8_t)((a>>16)&0xff));
-	analogWrite(11, (int8_t)(a>>24));
+	analogWrite(11, (int8_t)(a>>24));*/
+	int16_t left = a & 0xffff;		// left
+	int16_t right = (a>>16) & 0xffff0000;	// right
+	left += 32767;
+	right += 32767;
+	analogWrite(8, (left&0xff));
+	analogWrite(9, ((left>>8)&0xff));
+	analogWrite(10, ((right>>16)&0xff));
+	analogWrite(11, (right>>24));
 
 	// DAC
-	int8_t d = (int8_t)(a>>24);
+	uint8_t d = right>>8;
 	analogWrite(A21, d);
 	//int16_t d = (int16_t)(a>>16)+32767;
 	//analogWrite(A21, d/256);
