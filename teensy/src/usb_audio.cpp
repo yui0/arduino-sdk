@@ -22,49 +22,26 @@ void timerCallback0()
 	analogWrite(A21, a);
 	//tone(A21, r/100);
 #else
-	/*uint8_t a;
-	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(8, a);
-	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(9, a);
-	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(10, a);
-	fifo_read(&usb_audio_fifo, &a);
-	analogWrite(11, a);*/
-
 	uint32_t a;
 	if (!fifo_read(&usb_audio_fifo, &a)) return;
-	/*analogWrite(8, (int8_t)(a&0xff));
-	analogWrite(9, (int8_t)((a>>8)&0xff));
-	analogWrite(10, (int8_t)((a>>16)&0xff));
-	analogWrite(11, (int8_t)(a>>24));*/
-	int16_t left = a & 0xffff;		// left
-	int16_t right = (a>>16) & 0xffff0000;	// right
+
+	int16_t left = a & 0xffff;	// left
+	int16_t right = a>>16;		// right
 	left += 32767;
 	right += 32767;
-	analogWrite(8, (left&0xff));
-	analogWrite(9, ((left>>8)&0xff));
-	analogWrite(10, ((right>>16)&0xff));
-	analogWrite(11, (right>>24));
-
-	// DAC
-	uint8_t d = right>>8;
-	analogWrite(A21, d);
-	//int16_t d = (int16_t)(a>>16)+32767;
-	//analogWrite(A21, d/256);
-//	analogWrite(A21, a);
-	/*static int n = 0;
-	analogWrite(A21, usb_audio_receive_buffer[n]/256);
-	n += 2;
-	if (n>=180*2) n = 0;*/
-#endif
+	uint16_t l = left;
+	uint16_t r = right;
 
 	// PWM
-//	analogWrite(10, a&0xff);
-//	analogWrite(11, (a>>8)&0xff);
-//	analogWrite(8, (a>>16)&0xff);
-//	analogWrite(9, a>>24);
-	//analogWrite(9, a&0xffff);
+	analogWrite(8, (l&0xff));
+	analogWrite(9, (l>>8));
+	analogWrite(29, (r&0xff));
+	analogWrite(30, (r>>8));
+
+	// DAC
+	uint8_t d = r>>8;
+	analogWrite(A21, d);
+#endif
 
 	// GPIO
 	digitalWriteFast(0, d&0x01);
@@ -83,15 +60,15 @@ void setup()
 	pinMode(13, OUTPUT);
 
 	// PWM
-	pinMode(10, OUTPUT);
-	analogWriteFrequency(10, 234375);
-	pinMode(11, OUTPUT);
-	analogWriteFrequency(11, 234375);
 	pinMode(8, OUTPUT);
 	analogWriteFrequency(8, 234375);
 	pinMode(9, OUTPUT);
-//	analogWriteFrequency(9, 234375);
-	analogWriteFrequency(9, 160000);
+	analogWriteFrequency(9, 234375);
+	//analogWriteFrequency(9, 160000);
+	pinMode(29, OUTPUT);
+	analogWriteFrequency(29, 234375);
+	pinMode(30, OUTPUT);
+	analogWriteFrequency(30, 234375);
 
 	analogWriteResolution(8);	// 8bit/Resolution (234375 Hz)
 	//analogWriteResolution(16);	// 8bit/Resolution (915527 Hz)
