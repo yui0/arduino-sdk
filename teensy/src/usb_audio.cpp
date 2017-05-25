@@ -30,16 +30,20 @@ void timerCallback0()
 	right += 32767;
 	uint16_t l = left;
 	uint16_t r = right;
+/*	uint32_t l = left + 32767;
+	uint32_t r = right + 32767;*/
 
-	// PWM
-//	analogWrite(9, (l&0xff));
-//	analogWrite(10, (l>>8));
-	//analogWrite(10, (l>>5));
-	analogWrite(10, l);
-//	analogWrite(20, (r&0xff));
-//	analogWrite(21, (r>>8));
-	//analogWrite(21, (r>>5));
-	analogWrite(21, r);
+#if 1
+	// PWM (8bit)
+	analogWrite(9, (l&0xff));
+	analogWrite(10, (l>>8));
+	analogWrite(20, (r&0xff));
+	analogWrite(21, (r>>8));
+#else
+	// PWM (16bit)
+//	analogWrite(10, l);
+//	analogWrite(21, r);
+#endif
 
 	// DAC
 //	analogWrite(A21, r>>4);	// 12bit??
@@ -62,21 +66,24 @@ void setup()
 	// LED
 	pinMode(13, OUTPUT);
 
-	// PWM
+	// PWM (FTM0)
 	pinMode(9, OUTPUT);	// left
 	pinMode(10, OUTPUT);
 	pinMode(20, OUTPUT);	// right
 	pinMode(21, OUTPUT);
 
-//	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
-	//analogWriteResolution(11);		// 11bit/Resolution (29296.875 Hz)
-	analogWriteResolution(16);		// 16bit/Resolution (915.527 Hz xxxxx)
+#if 1
+	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
+#else
+//	analogWriteResolution(16);		// 16bit/Resolution
+#endif
 //	analogWriteFrequency(10, 937500);	// FTM0 6bit
 	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
 //	analogWriteFrequency(10, 117187);	// FTM0 9bit
 //	analogWriteFrequency(10, 58593);	// FTM0 10bit
 //	analogWriteFrequency(10, 29296);	// FTM0 11bit
 //	analogWriteFrequency(10, 14648);	// FTM0 12bit
+//	analogWriteFrequency(10, 915);		// FTM0 16bit (915.527 Hz xxxxx)
 
 	// GPIO
 	pinMode(0, OUTPUT);
