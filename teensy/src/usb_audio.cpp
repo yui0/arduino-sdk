@@ -2,8 +2,10 @@
 
 #include "WProgram.h"
 
-#define TIME	1000000/44100
-//#define TIME	1000000/48000
+#define TIME	1000000/44100	// 22
+//#define TIME	1000000/48000	// 20
+
+//#define MODE_16BIT
 
 void timerCallback0()
 {
@@ -30,19 +32,17 @@ void timerCallback0()
 	right += 32767;
 	uint16_t l = left;
 	uint16_t r = right;
-/*	uint32_t l = left + 32767;
-	uint32_t r = right + 32767;*/
 
-#if 1
+#ifdef MODE_16BIT
+	// PWM (16bit)
+	analogWrite(10, l);
+	analogWrite(21, r);
+#else
 	// PWM (8bit)
 	analogWrite(9, (l&0xff));
 	analogWrite(10, (l>>8));
 	analogWrite(20, (r&0xff));
 	analogWrite(21, (r>>8));
-#else
-	// PWM (16bit)
-//	analogWrite(10, l);
-//	analogWrite(21, r);
 #endif
 
 	// DAC
@@ -63,6 +63,13 @@ void timerCallback0()
 
 void setup()
 {
+	// CPU 216000000 Hz (mk20dx128.c)
+//	MCG_C5 = MCG_C5_PRDIV0(0);
+//	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(11);
+	// CPU 180000000
+	MCG_C5 = MCG_C5_PRDIV0(1);
+	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(29);
+
 	// LED
 	pinMode(13, OUTPUT);
 
@@ -72,18 +79,25 @@ void setup()
 	pinMode(20, OUTPUT);	// right
 	pinMode(21, OUTPUT);
 
-#if 1
-	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
+#ifdef MODE_16BIT
+	analogWriteResolution(16);		// 16bit/Resolution
 #else
-//	analogWriteResolution(16);		// 16bit/Resolution
+	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
 #endif
 //	analogWriteFrequency(10, 937500);	// FTM0 6bit
+//	analogWriteFrequency(10, 468750);	// FTM0 7bit (x)
 	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
-//	analogWriteFrequency(10, 117187);	// FTM0 9bit
-//	analogWriteFrequency(10, 58593);	// FTM0 10bit
-//	analogWriteFrequency(10, 29296);	// FTM0 11bit
-//	analogWriteFrequency(10, 14648);	// FTM0 12bit
-//	analogWriteFrequency(10, 915);		// FTM0 16bit (915.527 Hz xxxxx)
+//	analogWriteFrequency(10, 117187.5);	// FTM0 9bit
+//	analogWriteFrequency(10, 58593.75);	// FTM0 10bit
+//	analogWriteFrequency(10, 29296.875);	// FTM0 11bit
+//	analogWriteFrequency(10, 14648.437);	// FTM0 12bit
+//	analogWriteFrequency(10, 915.527);	// FTM0 16bit (915.527 Hz xxxxx)
+
+//	analogWriteFrequency(10, 320000);	// FTM0 8bit (o) echo $((108000000/(320000*8)))
+/*	analogWriteFrequency(9, 234375);	// FTM0 8bit (o)
+	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
+	analogWriteFrequency(20, 234375);	// FTM0 8bit (o)
+	analogWriteFrequency(21, 234375);	// FTM0 8bit (o)*/
 
 	// GPIO
 	pinMode(0, OUTPUT);
@@ -111,7 +125,7 @@ extern "C" int main()
 	timer0.begin(timerCallback0, TIME);
 	while (1) {
 		loop();
-		yield();
+		//yield();
 	}
 	timer0.end();
 }
