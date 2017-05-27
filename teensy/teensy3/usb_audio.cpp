@@ -1,3 +1,6 @@
+// Berry Audio
+// ©2017 Yuichiro Nakada
+
 #include "usb_dev.h"
 #include "usb_audio.h"
 #include "HardwareSerial.h"
@@ -199,7 +202,6 @@ int usb_audio_set_feature(void *stp, uint8_t *buf)
 	}
 	return 0;
 }
-
 
 #endif // F_CPU
 #endif // AUDIO_INTERFACE

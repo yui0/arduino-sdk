@@ -1,3 +1,4 @@
+// Berry Audio
 // ©2017 Yuichiro Nakada
 
 #include "WProgram.h"
@@ -67,8 +68,8 @@ void setup()
 //	MCG_C5 = MCG_C5_PRDIV0(0);
 //	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(11);
 	// CPU 180000000
-	MCG_C5 = MCG_C5_PRDIV0(1);
-	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(29);
+//	MCG_C5 = MCG_C5_PRDIV0(1);
+//	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(29);
 
 	// LED
 	pinMode(13, OUTPUT);
@@ -93,8 +94,8 @@ void setup()
 //	analogWriteFrequency(10, 14648.437);	// FTM0 12bit
 //	analogWriteFrequency(10, 915.527);	// FTM0 16bit (915.527 Hz xxxxx)
 
-//	analogWriteFrequency(10, 320000);	// FTM0 8bit (o) echo $((108000000/(320000*8)))
-/*	analogWriteFrequency(9, 234375);	// FTM0 8bit (o)
+//	analogWriteFrequency(10, 281250);	// FTM0 8bit (o) echo $((108000000/(320000*8)))
+/*	analogWriteFrequency(9, 234375);	// FTM0 8bit (o) echo $((180000000/234375)) = 768
 	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
 	analogWriteFrequency(20, 234375);	// FTM0 8bit (o)
 	analogWriteFrequency(21, 234375);	// FTM0 8bit (o)*/

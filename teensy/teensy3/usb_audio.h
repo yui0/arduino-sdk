@@ -1,3 +1,6 @@
+// Berry Audio
+// ©2017 Yuichiro Nakada
+
 #ifndef USBaudio_h_
 #define USBaudio_h_
 
@@ -9,6 +12,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 extern uint16_t usb_audio_receive_buffer[];
 extern uint16_t usb_audio_transmit_buffer[];
 extern void usb_audio_receive_callback(unsigned int len);
@@ -37,7 +41,6 @@ struct usb_audio_features_struct {
 	int mute;    // 1=mute, 0=unmute
 	int volume;  // volume from 0 to FEATURE_MAX_VOLUME, maybe should be float from 0.0 to 1.0
 };
-
 
 #endif // __cplusplus
 #endif // AUDIO_INTERFACE
