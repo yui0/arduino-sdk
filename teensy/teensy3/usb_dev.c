@@ -428,8 +428,7 @@ static void usb_setup(void)
 	  case 0x84A1:
 	  	if (usb_audio_get_feature(&setup, reply_buffer, &datalen)) {
 	  		data = reply_buffer;
-	  	}
-	  	else {
+	  	} else {
 	  		endpoint0_stall();
 	  		return;
 	  	}

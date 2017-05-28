@@ -40,6 +40,7 @@ void yield(void)
 
 	if (running) return; // TODO: does this need to be atomic?
 	running = 1;
+#ifdef  SEREMU_INTERFACE
 	if (Serial.available()) serialEvent();
 	if (Serial1.available()) serialEvent1();
 	if (Serial2.available()) serialEvent2();
@@ -52,6 +53,7 @@ void yield(void)
 #endif
 #if defined(HAS_KINETISK_UART5) || defined (HAS_KINETISK_LPUART0)
 	if (Serial6.available()) serialEvent6();
+#endif
 #endif
 	running = 0;
 };

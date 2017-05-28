@@ -534,6 +534,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define EP0_SIZE		64
   #define NUM_ENDPOINTS         5
   #define NUM_USB_BUFFERS	16
+  //#define NUM_INTERFACE		3
   #define NUM_INTERFACE		4
   #define SEREMU_INTERFACE      0	// Serial emulation
   #define SEREMU_TX_ENDPOINT    1

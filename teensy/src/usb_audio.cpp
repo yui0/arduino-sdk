@@ -2,6 +2,8 @@
 // ©2017 Yuichiro Nakada
 
 #include "WProgram.h"
+//#include "TeensyDelay.h"
+//#include "TimerOne.h"
 
 #define TIME	1000000/44100	// 22
 //#define TIME	1000000/48000	// 20
@@ -64,6 +66,9 @@ void timerCallback0()
 
 void setup()
 {
+	// XXXX!!! CPU 240000000 Hz (mk20dx128.c)
+//	MCG_C5 = MCG_C5_PRDIV0(0);
+//	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(14);
 	// CPU 216000000 Hz (mk20dx128.c)
 //	MCG_C5 = MCG_C5_PRDIV0(0);
 //	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(11);
@@ -86,16 +91,17 @@ void setup()
 	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
 #endif
 //	analogWriteFrequency(10, 937500);	// FTM0 6bit
-//	analogWriteFrequency(10, 468750);	// FTM0 7bit (x)
+//	analogWriteFrequency(10, 468750);	// FTM0 7bit (keybord: slow)
 	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
+	//analogWriteFrequency(10, 421875);	// FTM0 8bit / 216MHz $((216000000/2/256))
 //	analogWriteFrequency(10, 117187.5);	// FTM0 9bit
 //	analogWriteFrequency(10, 58593.75);	// FTM0 10bit
 //	analogWriteFrequency(10, 29296.875);	// FTM0 11bit
-//	analogWriteFrequency(10, 14648.437);	// FTM0 12bit
+//	analogWriteFrequency(10, 14648.437);	// FTM0 12bit (high: xx)
 //	analogWriteFrequency(10, 915.527);	// FTM0 16bit (915.527 Hz xxxxx)
 
-//	analogWriteFrequency(10, 281250);	// FTM0 8bit (o) echo $((108000000/(320000*8)))
-/*	analogWriteFrequency(9, 234375);	// FTM0 8bit (o) echo $((180000000/234375)) = 768
+//	analogWriteFrequency(10, 281250);	// FTM0 8bit (o) $((108000000/(320000*8)))
+/*	analogWriteFrequency(9, 234375);	// FTM0 8bit (o) $((180000000/234375)) = 768
 	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
 	analogWriteFrequency(20, 234375);	// FTM0 8bit (o)
 	analogWriteFrequency(21, 234375);	// FTM0 8bit (o)*/
@@ -109,6 +115,20 @@ void setup()
 	pinMode(5, OUTPUT);
 	pinMode(6, OUTPUT);
 	pinMode(7, OUTPUT);
+
+//	Serial.println("Hello World...");
+/*FTM0_CNT = 0;
+FTM0_C0SC = 0x28;
+FTM0_C1SC = 0x28;
+FTM0_MOD = 256;	// 8bit
+FTM0_C0V = 0;
+FTM0_C1V = 0;
+CORE_PIN9_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+CORE_PIN10_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+NVIC_SET_PRIORITY(IRQ_FTM0, 0);
+NVIC_ENABLE_IRQ(IRQ_FTM0);
+// Setup clock (starts counter)
+FTM0_SC = FTM_SC_CLKS(1) | FTM_SC_PS(0) | FTM_SC_TOIE;*/
 }
 
 void loop()
@@ -120,13 +140,17 @@ void loop()
 
 extern "C" int main()
 {
+//	TeensyDelay::begin();
+//	TeensyDelay::addDelayChannel(timerCallback0);
+//	Timer1.initialize(TIME);
+//	Timer1.attachInterrupt(timerCallback0);
 	setup();
-
 	IntervalTimer timer0;
 	timer0.begin(timerCallback0, TIME);
 	while (1) {
 		loop();
-		//yield();
+		yield();
+//		TeensyDelay::trigger(TIME);
 	}
 	timer0.end();
 }

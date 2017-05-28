@@ -4,7 +4,7 @@
 #include "usb_dev.h"
 #include "usb_audio.h"
 #include "HardwareSerial.h"
-#include <string.h> // for memcpy()
+//#include <string.h> // for memcpy()
 
 #ifdef AUDIO_INTERFACE // defined by usb_dev.h -> usb_desc.h
 #if F_CPU >= 20000000
@@ -36,6 +36,7 @@ int fifo_write(struct fifo_t *f, const uint32_t *buf, int n)
 	for (int i=0; i<n; i++) {
 		// first check to see if there is space in the buffer
 		if ((f->head+1 == f->tail) || ((f->head+1 == f->size) && (f->tail == 0))) {
+			//usb_serial_write("No more room!\n", 14);
 			return i;	// no more room
 		} else {
 			f->buf[f->head] = *p++;
@@ -53,14 +54,17 @@ struct fifo_t usb_audio_fifo = {
 	usb_audio_data, 0, 0, 1024,
 };
 
-
-struct usb_audio_features_struct features = {0, 0, FEATURE_MAX_VOLUME/2};
+struct usb_audio_features_struct features = {0, 0, FEATURE_MAX_VOLUME};
 
 #define DMABUFATTR __attribute__ ((section(".dmabuffers"), aligned (4)))
 uint16_t usb_audio_receive_buffer[AUDIO_RX_SIZE/2] DMABUFATTR;
-uint32_t usb_audio_sync_feedback DMABUFATTR;
+uint32_t usb_audio_sync_feedback DMABUFATTR = 185042824/256;
+//uint32_t usb_audio_sync_feedback DMABUFATTR = 723700; // too fast?
+//uint32_t usb_audio_sync_feedback DMABUFATTR = 722698; // Mac
+//uint32_t usb_audio_sync_feedback DMABUFATTR = 730000;
 uint8_t usb_audio_receive_setting = 0;
-
+//static uint32_t feedback_accumulator = 185042824;
+//usb_audio_sync_feedback = feedback_accumulator >> 8;
 
 // Called from the USB interrupt when an isochronous packet arrives
 // we must completely remove it from the receive buffer before returning
@@ -200,8 +204,10 @@ int usb_audio_set_feature(void *stp, uint8_t *buf)
 			}
 		}
 	}
+	serial_print("%");
 	return 0;
 }
 
 #endif // F_CPU
 #endif // AUDIO_INTERFACE
+
