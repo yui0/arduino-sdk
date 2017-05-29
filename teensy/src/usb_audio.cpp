@@ -10,6 +10,89 @@
 
 //#define MODE_16BIT
 
+#if defined(__MK20DX128__)
+#define FTM0_CH0_PIN 22
+#define FTM0_CH1_PIN 23
+#define FTM0_CH2_PIN  9
+#define FTM0_CH3_PIN 10
+#define FTM0_CH4_PIN  6
+#define FTM0_CH5_PIN 20
+#define FTM0_CH6_PIN 21
+#define FTM0_CH7_PIN  5
+#define FTM1_CH0_PIN  3
+#define FTM1_CH1_PIN  4
+#elif defined(__MK20DX256__)
+#define FTM0_CH0_PIN 22
+#define FTM0_CH1_PIN 23
+#define FTM0_CH2_PIN  9
+#define FTM0_CH3_PIN 10
+#define FTM0_CH4_PIN  6
+#define FTM0_CH5_PIN 20
+#define FTM0_CH6_PIN 21
+#define FTM0_CH7_PIN  5
+#define FTM1_CH0_PIN  3
+#define FTM1_CH1_PIN  4
+#define FTM2_CH0_PIN 32
+#define FTM2_CH1_PIN 25
+#elif defined(__MKL26Z64__)
+#define FTM0_CH0_PIN 22
+#define FTM0_CH1_PIN 23
+#define FTM0_CH2_PIN  9
+#define FTM0_CH3_PIN 10
+#define FTM0_CH4_PIN  6
+#define FTM0_CH5_PIN 20
+#define FTM1_CH0_PIN 16
+#define FTM1_CH1_PIN 17
+#define FTM2_CH0_PIN  3
+#define FTM2_CH1_PIN  4
+#elif defined(__MK64FX512__)
+#define FTM0_CH0_PIN 22
+#define FTM0_CH1_PIN 23
+#define FTM0_CH2_PIN  9
+#define FTM0_CH3_PIN 10
+#define FTM0_CH4_PIN  6
+#define FTM0_CH5_PIN 20
+#define FTM0_CH6_PIN 21
+#define FTM0_CH7_PIN  5
+#define FTM1_CH0_PIN  3
+#define FTM1_CH1_PIN  4
+#define FTM2_CH0_PIN 29
+#define FTM2_CH1_PIN 30
+#define FTM3_CH0_PIN  2
+#define FTM3_CH1_PIN 14
+#define FTM3_CH2_PIN  7
+#define FTM3_CH3_PIN  8
+#define FTM3_CH4_PIN 35
+#define FTM3_CH5_PIN 36
+#define FTM3_CH6_PIN 37
+#define FTM3_CH7_PIN 38
+#elif defined(__MK66FX1M0__)
+#define FTM0_CH0_PIN 22
+#define FTM0_CH1_PIN 23
+#define FTM0_CH2_PIN  9
+#define FTM0_CH3_PIN 10
+#define FTM0_CH4_PIN  6
+#define FTM0_CH5_PIN 20
+#define FTM0_CH6_PIN 21
+#define FTM0_CH7_PIN  5
+#define FTM1_CH0_PIN  3
+#define FTM1_CH1_PIN  4
+#define FTM2_CH0_PIN 29
+#define FTM2_CH1_PIN 30
+#define FTM3_CH0_PIN  2
+#define FTM3_CH1_PIN 14
+#define FTM3_CH2_PIN  7
+#define FTM3_CH3_PIN  8
+#define FTM3_CH4_PIN 35
+#define FTM3_CH5_PIN 36
+#define FTM3_CH6_PIN 37
+#define FTM3_CH7_PIN 38
+#define TPM1_CH0_PIN 16
+#define TPM1_CH1_PIN 17
+#endif
+#define FTM_PINCFG(pin) FTM_PINCFG2(pin)
+#define FTM_PINCFG2(pin) CORE_PIN ## pin ## _CONFIG
+
 void timerCallback0()
 {
 	//digitalWrite(13, !digitalRead(13));
@@ -42,10 +125,20 @@ void timerCallback0()
 	analogWrite(21, r);
 #else
 	// PWM (8bit)
-	analogWrite(9, (l&0xff));
+/*	analogWrite(9, (l&0xff));
 	analogWrite(10, (l>>8));
 	analogWrite(20, (r&0xff));
-	analogWrite(21, (r>>8));
+	analogWrite(21, (r>>8));*/
+
+	FTM0_C2V = l&0xff;
+	FTM_PINCFG(FTM0_CH2_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+	FTM0_C3V = l>>8;
+	FTM_PINCFG(FTM0_CH3_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+
+	FTM0_C5V = r&0xff;
+	FTM_PINCFG(FTM0_CH5_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+	FTM0_C6V = r>>8;
+	FTM_PINCFG(FTM0_CH6_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 #endif
 
 	// DAC
@@ -116,7 +209,6 @@ void setup()
 	pinMode(6, OUTPUT);
 	pinMode(7, OUTPUT);
 
-//	Serial.println("Hello World...");
 /*FTM0_CNT = 0;
 FTM0_C0SC = 0x28;
 FTM0_C1SC = 0x28;

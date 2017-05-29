@@ -3,8 +3,14 @@
 
 #include "usb_dev.h"
 #include "usb_audio.h"
-#include "HardwareSerial.h"
-//#include <string.h> // for memcpy()
+#include "usb_seremu.h"
+
+#define DEBUG
+#ifdef DEBUG
+#define debug(...)	Serial.printf(__VA_ARGS__)
+#else
+#define debug(...)
+#endif
 
 #ifdef AUDIO_INTERFACE // defined by usb_dev.h -> usb_desc.h
 #if F_CPU >= 20000000
@@ -36,7 +42,7 @@ int fifo_write(struct fifo_t *f, const uint32_t *buf, int n)
 	for (int i=0; i<n; i++) {
 		// first check to see if there is space in the buffer
 		if ((f->head+1 == f->tail) || ((f->head+1 == f->size) && (f->tail == 0))) {
-			//usb_serial_write("No more room!\n", 14);
+			debug("No more room!\n");
 			return i;	// no more room
 		} else {
 			f->buf[f->head] = *p++;
@@ -72,6 +78,7 @@ void usb_audio_receive_callback(unsigned int len)
 {
 	len >>= 2; // 1 sample = 4 bytes: 2 left, 2 right
 	fifo_write(&usb_audio_fifo, (uint32_t*)usb_audio_receive_buffer, len);
+	//debug("+");
 }
 
 
@@ -126,6 +133,7 @@ unsigned int usb_audio_transmit_callback()
 		}
 	}
 	return target * 4;*/
+	debug("usb_audio_transmit_callback\n");
 	return 45*4;
 }
 
@@ -182,6 +190,7 @@ int usb_audio_get_feature(void *stp, uint8_t *data, uint32_t *datalen)
 			*datalen = 2;
 			return 1;
 		}
+		debug("usb_audio_get_feature: %d\n", setup.bmRequestType);
 	}
 	return 0;
 }
@@ -204,7 +213,7 @@ int usb_audio_set_feature(void *stp, uint8_t *buf)
 			}
 		}
 	}
-	serial_print("%");
+	debug("usb_audio_set_feature: %d\n", setup.bmRequestType);
 	return 0;
 }
 

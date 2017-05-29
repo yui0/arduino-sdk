@@ -94,7 +94,7 @@ static uint8_t device_descriptor[] = {
         1,                                      // bNumConfigurations
 
 	// Device Qualifier
-	10,					// bLength
+/*	10,					// bLength
 	6,					// bDescriptorType: Device Qualifier
 	0x00, 0x02,				// bcdUSB
 	0,					// bDeviceClass
@@ -102,7 +102,7 @@ static uint8_t device_descriptor[] = {
 	0,					// bDeviceSubSubClass
 	0,					// Maximum packet size
 	1,					// bDeviceProtocol
-	0,					// Reserved
+	0,					// Reserved*/
 };
 
 // These descriptors must NOT be "const", because the USB DMA
@@ -553,7 +553,8 @@ static uint8_t flightsim_report_desc[] = {
 
 #define AUDIO_INTERFACE_DESC_POS	KEYMEDIA_INTERFACE_DESC_POS+KEYMEDIA_INTERFACE_DESC_SIZE
 #ifdef  AUDIO_INTERFACE
-#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
+#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7 + 9+9+7+11+9+7+9
+//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
 #else
 #define AUDIO_INTERFACE_DESC_SIZE	0
 #endif
@@ -1128,16 +1129,18 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	0x01, 0x00,				// wFormatTag, 0x0001 = PCM
 	// Type I Format Descriptor
 	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
-	11+3,					// bLength
+	11,					// bLength
+//	11+3,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
 	1,					// bFormatType = FORMAT_TYPE_I
 	2,					// bNrChannels = 2
 	2,					// bSubFrameSize = 2 byte
 	16,					// bBitResolution = 16 bits
-	2,					// bSamFreqType = 2 frequency
+	1,					// bSamFreqType = 2 frequency
+//	2,					// bSamFreqType = 2 frequency
 	LSB(44100), MSB(44100), 0,		// tSamFreq
-	LSB(48000), MSB(48000), 0,		// tSamFreq
+//	LSB(48000), MSB(48000), 0,		// tSamFreq
 	// Standard AS Isochronous Audio Data Endpoint Descriptor
 	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
 	9, 					// bLength
@@ -1188,16 +1191,18 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	0x01, 0x00,				// wFormatTag, 0x0001 = PCM
 	// Type I Format Descriptor
 	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
-	11+3,					// bLength
+	11,					// bLength
+//	11+3,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
 	1,					// bFormatType = FORMAT_TYPE_I
 	2,					// bNrChannels = 2
 	2,					// bSubFrameSize = 2 byte
 	16,					// bBitResolution = 16 bits
-	2,					// bSamFreqType = 2 frequency
+	1,					// bSamFreqType = 2 frequency
+//	2,					// bSamFreqType = 2 frequency
 	LSB(44100), MSB(44100), 0,		// tSamFreq
-	LSB(48000), MSB(48000), 0,		// tSamFreq
+//	LSB(48000), MSB(48000), 0,		// tSamFreq
 	// Standard AS Isochronous Audio Data Endpoint Descriptor
 	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
 	9, 					// bLength
