@@ -5,7 +5,7 @@
 #include "usb_audio.h"
 #include "usb_seremu.h"
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 #define debug(...)	Serial.printf(__VA_ARGS__)
 #else

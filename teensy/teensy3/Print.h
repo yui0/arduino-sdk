@@ -49,10 +49,12 @@ class __FlashStringHelper;
 class Print
 {
   public:
-	Print() : write_error(0) {}
+	constexpr Print() : write_error(0) {}
 	virtual size_t write(uint8_t b) = 0;
 	size_t write(const char *str)			{ return write((const uint8_t *)str, strlen(str)); }
 	virtual size_t write(const uint8_t *buffer, size_t size);
+	virtual int availableForWrite(void)		{ return 0; }
+	virtual void flush()				{ }
 	size_t write(const char *buffer, size_t size)	{ return write((const uint8_t *)buffer, size); }
 	size_t print(const String &s);
 	size_t print(char c)				{ return write((uint8_t)c); }

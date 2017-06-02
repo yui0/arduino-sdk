@@ -2,8 +2,6 @@
 // ©2017 Yuichiro Nakada
 
 #include "WProgram.h"
-//#include "TeensyDelay.h"
-//#include "TimerOne.h"
 
 #define TIME	1000000/44100	// 22
 //#define TIME	1000000/48000	// 20
@@ -95,27 +93,17 @@
 
 void timerCallback0()
 {
-	//digitalWrite(13, !digitalRead(13));
-
-#if 0
-	// sin wave
-	static int r = 0;
-	uint32_t a = sin(r/100.0 * 2*3.14)*255; r++;
-	analogWrite(8, a);
-	analogWrite(9, a);
-	analogWrite(10, a);
-	analogWrite(11, a);	// Not PWM!
-
-	analogWrite(A21, a);
-	//tone(A21, r/100);
-#else
 	uint32_t a;
 	if (!fifo_read(&usb_audio_fifo, &a)) return;
 
 	int16_t left = a & 0xffff;	// left
 	int16_t right = a>>16;		// right
-	left += 32767;
-	right += 32767;
+//	left += 32767;
+//	right += 32767;
+	left += 32768;			// ??? noisy
+	right += 32768;
+//	left = left > 0xfffe ? 0xfffe : left;
+//	right = right > 0xfffe ? 0xfffe : right;
 	uint16_t l = left;
 	uint16_t r = right;
 
@@ -125,25 +113,19 @@ void timerCallback0()
 	analogWrite(21, r);
 #else
 	// PWM (8bit)
-/*	analogWrite(9, (l&0xff));
-	analogWrite(10, (l>>8));
-	analogWrite(20, (r&0xff));
-	analogWrite(21, (r>>8));*/
-
-	FTM0_C2V = l&0xff;
+	FTM0_C2V = l&0xff;	// 9
 	FTM_PINCFG(FTM0_CH2_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
-	FTM0_C3V = l>>8;
+	FTM0_C3V = l>>8;	// 10
 	FTM_PINCFG(FTM0_CH3_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 
-	FTM0_C5V = r&0xff;
+	FTM0_C5V = r&0xff;	// 20
 	FTM_PINCFG(FTM0_CH5_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
-	FTM0_C6V = r>>8;
+	FTM0_C6V = r>>8;	// 21
 	FTM_PINCFG(FTM0_CH6_PIN) = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 #endif
 
 	// DAC
 //	analogWrite(A21, r>>4);	// 12bit??
-#endif
 
 	// GPIO
 /*	uint8_t d = r>>8;
@@ -232,17 +214,12 @@ void loop()
 
 extern "C" int main()
 {
-//	TeensyDelay::begin();
-//	TeensyDelay::addDelayChannel(timerCallback0);
-//	Timer1.initialize(TIME);
-//	Timer1.attachInterrupt(timerCallback0);
 	setup();
 	IntervalTimer timer0;
 	timer0.begin(timerCallback0, TIME);
 	while (1) {
 		loop();
 		yield();
-//		TeensyDelay::trigger(TIME);
 	}
 	timer0.end();
 }
