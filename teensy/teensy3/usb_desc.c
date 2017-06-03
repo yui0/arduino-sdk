@@ -1219,6 +1219,7 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	0x25,  					// bDescriptorType, 0x25 = CS_ENDPOINT
 	1,  					// bDescriptorSubtype, 1 = EP_GENERAL
 	0x00,  					// bmAttributes
+//	0x01,  					// bmAttributes (Sampling Frequency control)
 	0,  					// bLockDelayUnits, 1 = ms
 	0x00, 0x00,  				// wLockDelay
 	// Standard AS Isochronous Audio Synch Endpoint Descriptor

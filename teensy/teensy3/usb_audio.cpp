@@ -20,7 +20,7 @@
 // https://forum.pjrc.com/threads/34855-Distorted-audio-when-using-USB-input-on-Teensy-3-1
 //#define MACOSX_ADAPTIVE_LIMIT
 
-int fifo_read(struct fifo_t *f, uint32_t *a)
+/*int fifo_read(struct fifo_t *f, uint32_t *a)
 {
 	if (f->tail != f->head) {		// see if any data is available
 		*a = f->buf[f->tail];		// grab a byte from the buffer
@@ -31,6 +31,24 @@ int fifo_read(struct fifo_t *f, uint32_t *a)
 	} else {
 		*a = 0;
 		return 0; // number of bytes read
+	}
+	return 1;
+}*/
+int fifo_read(struct fifo_t *f, uint32_t *a)
+{
+	if (f->tail == f->head) {
+		*a = 0;
+		static int count = 0;
+		count++;
+		if (count>44100/2) {
+			count = 0;
+			return 1;
+		}
+		return 0;		// number of bytes read
+	}
+	*a = f->buf[f->tail++];		// grab a byte from the buffer
+	if (f->tail == f->size) {	// check for wrap-around
+		f->tail = 0;
 	}
 	return 1;
 }
