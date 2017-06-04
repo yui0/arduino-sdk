@@ -554,7 +554,9 @@ static uint8_t flightsim_report_desc[] = {
 #define AUDIO_INTERFACE_DESC_POS	KEYMEDIA_INTERFACE_DESC_POS+KEYMEDIA_INTERFACE_DESC_SIZE
 #ifdef  AUDIO_INTERFACE
 //#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7 + 9+9+7+11+9+7+9
-#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
+//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
+//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7/*in*/ + 9+9+7+(11+3)+9+7+9/*out*/
+#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7/*in*/ + 9+9+7+(11+3)+9+7/*out*/
 #else
 #define AUDIO_INTERFACE_DESC_SIZE	0
 #endif
@@ -955,7 +957,7 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
         0x06,                                   // bInterfaceClass (0x06 = still image)
         0x01,                                   // bInterfaceSubClass
         0x01,                                   // bInterfaceProtocol
-        0,                                      // iInterface
+        4,                                      // iInterface
         // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
         7,                                      // bLength
         5,                                      // bDescriptorType
@@ -1129,18 +1131,18 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	0x01, 0x00,				// wFormatTag, 0x0001 = PCM
 	// Type I Format Descriptor
 	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
-//	11,					// bLength
-	11+3,					// bLength
+	11,					// bLength
+//	11+3,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
 	1,					// bFormatType = FORMAT_TYPE_I
 	2,					// bNrChannels = 2
 	2,					// bSubFrameSize = 2 byte
 	16,					// bBitResolution = 16 bits
-//	1,					// bSamFreqType = 1 frequency
-	2,					// bSamFreqType = 2 frequency
+	1,					// bSamFreqType = 1 frequency
+//	2,					// bSamFreqType = 2 frequency
 	LSB(44100), MSB(44100), 0,		// tSamFreq
-	LSB(48000), MSB(48000), 0,		// tSamFreq
+//	LSB(48000), MSB(48000), 0,		// tSamFreq
 	// Standard AS Isochronous Audio Data Endpoint Descriptor
 	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
 	9, 					// bLength
@@ -1176,7 +1178,8 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	4,					// bDescriptorType = INTERFACE
 	AUDIO_INTERFACE+2,			// bInterfaceNumber
 	1,					// bAlternateSetting
-	2,					// bNumEndpoints
+//	2,					// bNumEndpoints
+	1,					// bNumEndpoints
 	1,					// bInterfaceClass, 1 = AUDIO
 	2,					// bInterfaceSubclass, 2 = AUDIO_STREAMING
 	0,					// bInterfaceProtocol
@@ -1212,7 +1215,8 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	LSB(AUDIO_RX_SIZE), MSB(AUDIO_RX_SIZE),	// wMaxPacketSize
 	1,			 		// bInterval, 1 = every frame
 	0,					// bRefresh
-	AUDIO_SYNC_ENDPOINT | 0x80,		// bSynchAddress
+//	AUDIO_SYNC_ENDPOINT | 0x80,		// bSynchAddress
+	0, //AUDIO_SYNC_ENDPOINT | 0x80,	// bSynchAddress
 	// Class-Specific AS Isochronous Audio Data Endpoint Descriptor
 	// USB DCD for Audio Devices 1.0, Section 4.6.1.2, Table 4-21, page 62-63
 	7,  					// bLength
@@ -1222,7 +1226,7 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 //	0x01,  					// bmAttributes (Sampling Frequency control)
 	0,  					// bLockDelayUnits, 1 = ms
 	0x00, 0x00,  				// wLockDelay
-	// Standard AS Isochronous Audio Synch Endpoint Descriptor
+/*	// Standard AS Isochronous Audio Synch Endpoint Descriptor
 	// USB DCD for Audio Devices 1.0, Section 4.6.2.1, Table 4-22, page 63-64
 	9, 					// bLength
 	5, 					// bDescriptorType, 5 = ENDPOINT_DESCRIPTOR
@@ -1231,7 +1235,7 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 	3, 0,					// wMaxPacketSize, 3 bytes
 	1,			 		// bInterval, 1 = every frame
 	5,					// bRefresh, 5 = 32ms
-	0,					// bSynchAddress
+	0,					// bSynchAddress*/
 #endif
 
 #ifdef MULTITOUCH_INTERFACE
@@ -1309,6 +1313,13 @@ struct usb_string_descriptor_struct usb_string_serial_number_default = {
         3,
         {0,0,0,0,0,0,0,0,0,0}
 };
+#ifdef MTP_INTERFACE
+struct usb_string_descriptor_struct usb_string_mtp = {
+	2 + 3 * 2,
+	3,
+	{'M','T','P'}
+};
+#endif
 
 void usb_init_serialnumber(void)
 {
@@ -1386,6 +1397,9 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
 #ifdef MULTITOUCH_INTERFACE
         {0x2200, MULTITOUCH_INTERFACE, multitouch_report_desc, sizeof(multitouch_report_desc)},
         {0x2100, MULTITOUCH_INTERFACE, config_descriptor+MULTITOUCH_HID_DESC_OFFSET, 9},
+#endif
+#ifdef MTP_INTERFACE
+	{0x0304, 0x0409, (const uint8_t *)&usb_string_mtp, 0},
 #endif
         {0x0300, 0x0000, (const uint8_t *)&string0, 0},
         {0x0301, 0x0409, (const uint8_t *)&usb_string_manufacturer_name, 0},

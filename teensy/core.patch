@@ -80,7 +80,7 @@
  #ifdef AUDIO_INTERFACE // defined by usb_dev.h -> usb_desc.h
  #if F_CPU >= 20000000
  
-@@ -41,272 +20,78 @@
+@@ -41,272 +20,96 @@
  // https://forum.pjrc.com/threads/34855-Distorted-audio-when-using-USB-input-on-Teensy-3-1
  //#define MACOSX_ADAPTIVE_LIMIT
  
@@ -117,15 +117,6 @@
 -	// means we no longer get receive callbacks from usb_dev.
 -	update_responsibility = false;
 -	usb_audio_sync_feedback = feedback_accumulator >> 8;
--}
--
--static void copy_to_buffers(const uint32_t *src, int16_t *left, int16_t *right, unsigned int len)
--{
--	uint32_t *target = (uint32_t*) src + len; 
--	while ((src < target) && (((uintptr_t) left & 0x02) != 0)) {
--		uint32_t n = *src++;
--		*left++ = n & 0xFFFF;
--		*right++ = n >> 16;
 +	if (f->tail != f->head) {		// see if any data is available
 +		*a = f->buf[f->tail];		// grab a byte from the buffer
 +		f->tail++;			// increment the tail
@@ -135,6 +126,27 @@
 +	} else {
 +		*a = 0;
 +		return 0; // number of bytes read
++	}
++	return 1;
+ }
+-
+-static void copy_to_buffers(const uint32_t *src, int16_t *left, int16_t *right, unsigned int len)
++/*int fifo_read(struct fifo_t *f, uint32_t *a)
+ {
+-	uint32_t *target = (uint32_t*) src + len; 
+-	while ((src < target) && (((uintptr_t) left & 0x02) != 0)) {
+-		uint32_t n = *src++;
+-		*left++ = n & 0xFFFF;
+-		*right++ = n >> 16;
++	if (f->tail == f->head) {
++		*a = 0;
++		static int count = 0;
++		count++;
++		if (count>44100/2) {
++			count = 0;
++			return 1;
++		}
++		return 0;		// number of bytes read
  	}
 -
 -	while ((src < target - 2)) {
@@ -144,16 +156,20 @@
 -		left+=2;
 -		*(uint32_t *)right = (n1 >> 16) | ((n & 0xFFFF0000)) ;
 -		right+=2;
--	}
--
++	*a = f->buf[f->tail++];		// grab a byte from the buffer
++	if (f->tail == f->size) {	// check for wrap-around
++		f->tail = 0;
+ 	}
++	return 1;
++}*/
+ 
 -	while ((src < target)) {
 -		uint32_t n = *src++;
 -		*left++ = n & 0xFFFF;
 -		*right++ = n >> 16;
 -	}
-+	return 1;
- }
- 
+-}
+-
 -// Called from the USB interrupt when an isochronous packet arrives
 -// we must completely remove it from the receive buffer before returning
 -//
@@ -401,7 +417,7 @@
  	uint32_t avail, num, target, offset, len=0;
  	audio_block_t *left, *right;
  
-@@ -318,15 +103,15 @@
+@@ -318,15 +121,15 @@
  	}
  	while (len < target) {
  		num = target - len;
@@ -420,7 +436,7 @@
  
  		avail = AUDIO_BLOCK_SAMPLES - offset;
  		if (num > avail) num = avail;
-@@ -338,102 +123,100 @@
+@@ -338,102 +141,100 @@
  		if (offset >= AUDIO_BLOCK_SAMPLES) {
  			AudioStream::release(left);
  			AudioStream::release(right);
@@ -705,17 +721,19 @@
  };
  
  // These descriptors must NOT be "const", because the USB DMA
-@@ -542,7 +553,8 @@
+@@ -542,7 +553,10 @@
  
  #define AUDIO_INTERFACE_DESC_POS	KEYMEDIA_INTERFACE_DESC_POS+KEYMEDIA_INTERFACE_DESC_SIZE
  #ifdef  AUDIO_INTERFACE
 -#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7 + 9+9+7+11+9+7+9
 +//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7 + 9+9+7+11+9+7+9
-+#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
++//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+(11+3)+9+7 + 9+9+7+(11+3)+9+7+9
++//#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7/*in*/ + 9+9+7+(11+3)+9+7+9/*out*/
++#define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7/*in*/ + 9+9+7+(11+3)+9+7/*out*/
  #else
  #define AUDIO_INTERFACE_DESC_SIZE	0
  #endif
-@@ -569,7 +581,7 @@
+@@ -569,7 +583,7 @@
          // configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
          9,                                      // bLength;
          2,                                      // bDescriptorType;
@@ -724,7 +742,35 @@
          MSB(CONFIG_DESC_SIZE),
          NUM_INTERFACE,                          // bNumInterfaces
          1,                                      // bConfigurationValue
-@@ -1117,15 +1129,18 @@
+@@ -1118,6 +1132,7 @@
+ 	// Type I Format Descriptor
+ 	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
+ 	11,					// bLength
++//	11+3,					// bLength
+ 	0x24,					// bDescriptorType = CS_INTERFACE
+ 	2,					// bDescriptorSubtype = FORMAT_TYPE
+ 	1,					// bFormatType = FORMAT_TYPE_I
+@@ -1125,7 +1140,9 @@
+ 	2,					// bSubFrameSize = 2 byte
+ 	16,					// bBitResolution = 16 bits
+ 	1,					// bSamFreqType = 1 frequency
++//	2,					// bSamFreqType = 2 frequency
+ 	LSB(44100), MSB(44100), 0,		// tSamFreq
++//	LSB(48000), MSB(48000), 0,		// tSamFreq
+ 	// Standard AS Isochronous Audio Data Endpoint Descriptor
+ 	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
+ 	9, 					// bLength
+@@ -1161,7 +1178,8 @@
+ 	4,					// bDescriptorType = INTERFACE
+ 	AUDIO_INTERFACE+2,			// bInterfaceNumber
+ 	1,					// bAlternateSetting
+-	2,					// bNumEndpoints
++//	2,					// bNumEndpoints
++	1,					// bNumEndpoints
+ 	1,					// bInterfaceClass, 1 = AUDIO
+ 	2,					// bInterfaceSubclass, 2 = AUDIO_STREAMING
+ 	0,					// bInterfaceProtocol
+@@ -1176,15 +1194,18 @@
  	0x01, 0x00,				// wFormatTag, 0x0001 = PCM
  	// Type I Format Descriptor
  	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
@@ -745,27 +791,36 @@
  	// Standard AS Isochronous Audio Data Endpoint Descriptor
  	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
  	9, 					// bLength
-@@ -1176,15 +1191,18 @@
- 	0x01, 0x00,				// wFormatTag, 0x0001 = PCM
- 	// Type I Format Descriptor
- 	// USB DCD for Audio Data Formats 1.0, Section 2.2.5, Table 2-1, page 10
--	11,					// bLength
-+//	11,					// bLength
-+	11+3,					// bLength
- 	0x24,					// bDescriptorType = CS_INTERFACE
- 	2,					// bDescriptorSubtype = FORMAT_TYPE
- 	1,					// bFormatType = FORMAT_TYPE_I
- 	2,					// bNrChannels = 2
- 	2,					// bSubFrameSize = 2 byte
- 	16,					// bBitResolution = 16 bits
--	1,					// bSamFreqType = 1 frequency
-+//	1,					// bSamFreqType = 1 frequency
-+	2,					// bSamFreqType = 2 frequency
- 	LSB(44100), MSB(44100), 0,		// tSamFreq
-+	LSB(48000), MSB(48000), 0,		// tSamFreq
- 	// Standard AS Isochronous Audio Data Endpoint Descriptor
- 	// USB DCD for Audio Devices 1.0, Section 4.6.1.1, Table 4-20, page 61-62
+@@ -1194,16 +1215,18 @@
+ 	LSB(AUDIO_RX_SIZE), MSB(AUDIO_RX_SIZE),	// wMaxPacketSize
+ 	1,			 		// bInterval, 1 = every frame
+ 	0,					// bRefresh
+-	AUDIO_SYNC_ENDPOINT | 0x80,		// bSynchAddress
++//	AUDIO_SYNC_ENDPOINT | 0x80,		// bSynchAddress
++	0, //AUDIO_SYNC_ENDPOINT | 0x80,	// bSynchAddress
+ 	// Class-Specific AS Isochronous Audio Data Endpoint Descriptor
+ 	// USB DCD for Audio Devices 1.0, Section 4.6.1.2, Table 4-21, page 62-63
+ 	7,  					// bLength
+ 	0x25,  					// bDescriptorType, 0x25 = CS_ENDPOINT
+ 	1,  					// bDescriptorSubtype, 1 = EP_GENERAL
+ 	0x00,  					// bmAttributes
++//	0x01,  					// bmAttributes (Sampling Frequency control)
+ 	0,  					// bLockDelayUnits, 1 = ms
+ 	0x00, 0x00,  				// wLockDelay
+-	// Standard AS Isochronous Audio Synch Endpoint Descriptor
++/*	// Standard AS Isochronous Audio Synch Endpoint Descriptor
+ 	// USB DCD for Audio Devices 1.0, Section 4.6.2.1, Table 4-22, page 63-64
  	9, 					// bLength
+ 	5, 					// bDescriptorType, 5 = ENDPOINT_DESCRIPTOR
+@@ -1212,7 +1235,7 @@
+ 	3, 0,					// wMaxPacketSize, 3 bytes
+ 	1,			 		// bInterval, 1 = every frame
+ 	5,					// bRefresh, 5 = 32ms
+-	0,					// bSynchAddress
++	0,					// bSynchAddress*/
+ #endif
+ 
+ #ifdef MULTITOUCH_INTERFACE
 --- teensy3.orig/usb_desc.h
 +++ teensy3/usb_desc.h
 @@ -527,13 +527,14 @@
@@ -787,18 +842,33 @@
    #define NUM_INTERFACE		4
    #define SEREMU_INTERFACE      0	// Serial emulation
    #define SEREMU_TX_ENDPOINT    1
---- teensy3.orig/usb_dev.c
-+++ teensy3/usb_dev.c
-@@ -428,8 +428,7 @@
- 	  case 0x84A1:
- 	  	if (usb_audio_get_feature(&setup, reply_buffer, &datalen)) {
- 	  		data = reply_buffer;
--	  	}
--	  	else {
-+	  	} else {
- 	  		endpoint0_stall();
- 	  		return;
- 	  	}
+--- teensy3.orig/wiring.h
++++ teensy3/wiring.h
+@@ -39,14 +39,12 @@
+ #include <type_traits>
+ // when the input number is an integer type, do all math as 32 bit signed long
+ template <class T, class A, class B, class C, class D>
+-long map(T _x, A _in_min, B _in_max, C _out_min, D _out_max, typename std::enable_if<std::is_integral<T>::value >::type* = 0)
++T map(T _x, A _in_min, B _in_max, C _out_min, D _out_max, typename std::enable_if<std::is_integral<T>::value >::type* = 0)
+ {
+ 	long x = _x, in_min = _in_min, in_max = _in_max, out_min = _out_min, out_max = _out_max;
+ 	// Arduino's traditional algorithm
+ 	//return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+ 	// st42's suggestion: https://github.com/arduino/Arduino/issues/2466#issuecomment-69873889
+-	// more conversation:
+-	// https://forum.pjrc.com/threads/44503-map()-function-improvements
+ 	if ((in_max - in_min) > (out_max - out_min)) {
+ 		return (x - in_min) * (out_max - out_min+1) / (in_max - in_min+1) + out_min;
+ 	} else {
+@@ -131,7 +129,7 @@
+ extern float pow10f(float x);
+ extern long double pow10l(long double x);
+ 
+-#define stricmp(a, b) strcasecmp(a, b)
++//#define stricmp(a, b) strcasecmp(a, b)
+ 
+ #define sei() __enable_irq()
+ #define cli() __disable_irq()
 --- teensy3.orig/yield.cpp
 +++ teensy3/yield.cpp
 @@ -40,6 +40,7 @@

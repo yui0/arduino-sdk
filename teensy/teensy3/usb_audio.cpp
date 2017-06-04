@@ -34,7 +34,19 @@
 	}
 	return 1;
 }*/
-int fifo_read(struct fifo_t *f, uint32_t *a)
+uint32_t *fifo_read(struct fifo_t *f)
+{
+	uint32_t *p = 0;
+	if (f->tail != f->head) {		// see if any data is available
+		p = &f->buf[f->tail];		// grab a byte from the buffer
+		f->tail++;			// increment the tail
+		if (f->tail == f->size) {	// check for wrap-around
+			f->tail = 0;
+		}
+	}
+	return p;
+}
+/*int fifo_read(struct fifo_t *f, uint32_t *a)
 {
 	if (f->tail == f->head) {
 		*a = 0;
@@ -51,7 +63,7 @@ int fifo_read(struct fifo_t *f, uint32_t *a)
 		f->tail = 0;
 	}
 	return 1;
-}
+}*/
 
 int fifo_write(struct fifo_t *f, const uint32_t *buf, int n)
 {

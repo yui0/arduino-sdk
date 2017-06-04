@@ -31,7 +31,8 @@ struct fifo_t {
 	int size;
 };
 extern struct fifo_t usb_audio_fifo;
-int fifo_read(struct fifo_t *f, uint32_t *a);
+//int fifo_read(struct fifo_t *f, uint32_t *a);
+uint32_t *fifo_read(struct fifo_t *f);
 #ifdef __cplusplus
 }
 

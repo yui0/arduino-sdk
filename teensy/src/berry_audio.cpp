@@ -3,11 +3,6 @@
 
 #include "WProgram.h"
 
-#define PWMA_H		9			// FTM0 - CH0
-#define PWMA_L		10			// FTM0 - CH1
-#define PWMB_H		20			// FTM0 - CH2
-#define PWMB_L		21			// FTM0 - CH3
-
 #define TPM_C		72000000		// core clock
 #define PWM_FREQ	(234375*2)		// PWM frequency * 2
 #define MODULO		(TPM_C / PWM_FREQ)	// modulo for FTM0
@@ -17,11 +12,17 @@
 
 void timerCallback0()
 {
-	uint32_t a;
-	if (!fifo_read(&usb_audio_fifo, &a)) return;
+//	uint32_t a;
+//	if (!fifo_read(&usb_audio_fifo, &a)) return;
 
-	int16_t left = a & 0xffff;	// left
-	int16_t right = a>>16;		// right
+	int16_t *a;
+	if (!(a = (int16_t *)fifo_read(&usb_audio_fifo))) return;
+
+	int16_t left = *a++;		// left
+	int16_t right = *a;		// right
+
+//	int16_t left = a & 0xffff;	// left
+//	int16_t right = a>>16;		// right
 //	left += 32767;
 //	right += 32767;
 	left += 32768;			// ??? noisy
@@ -36,7 +37,7 @@ void timerCallback0()
 	FTM0_C3V = l>>8;	// 10
 	FTM0_C5V = r&0xff;	// 20
 	FTM0_C6V = r>>8;	// 21
-	FTM0_SYNC |= 0x80;		// set PWM value update
+	FTM0_SYNC |= 0x80;	// set PWM value update
 }
 
 void setup()
