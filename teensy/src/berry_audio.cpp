@@ -3,6 +3,8 @@
 
 #include "WProgram.h"
 
+//#define TEST_MODE
+
 #define TPM_C		72000000		// core clock
 #define PWM_FREQ	(234375*2)		// PWM frequency * 2
 #define MODULO		(TPM_C / PWM_FREQ)	// modulo for FTM0
@@ -12,32 +14,59 @@
 
 void timerCallback0()
 {
+#ifdef TEST_MODE2
+	// sin wave
+	static int c = 0, n = 0;
+	uint16_t s = sin(c/100.0 * 2*3.14)*(sin(n/1000000.0*2*3.14)*65535); c++; n++;
+	if (c>100) c = 0;
+	if (n>1000000) n = 0;
+	uint8_t *l = (uint8_t *)&s;
+	FTM0_C2V = *l++;	// 9
+	FTM0_C3V = *l;		// 10
+	FTM0_SYNC |= 0x80;	// set PWM value update
+#else
 //	uint32_t a;
 //	if (!fifo_read(&usb_audio_fifo, &a)) return;
+//	int16_t left = a & 0xffff;	// left
+//	int16_t right = a>>16;		// right
 
 	int16_t *a;
 	if (!(a = (int16_t *)fifo_read(&usb_audio_fifo))) return;
-
 	int16_t left = *a++;		// left
 	int16_t right = *a;		// right
 
-//	int16_t left = a & 0xffff;	// left
-//	int16_t right = a>>16;		// right
 //	left += 32767;
 //	right += 32767;
 	left += 32768;			// ??? noisy
 	right += 32768;
-//	left = left > 0xfffe ? 0xfffe : left;
-//	right = right > 0xfffe ? 0xfffe : right;
-	uint16_t l = left;
-	uint16_t r = right;
 
 	// PWM (8bit)
+/*	uint16_t l = left;
+	uint16_t r = right;
 	FTM0_C2V = l&0xff;	// 9
 	FTM0_C3V = l>>8;	// 10
 	FTM0_C5V = r&0xff;	// 20
 	FTM0_C6V = r>>8;	// 21
+	FTM0_SYNC |= 0x80;	// set PWM value update*/
+
+	// PWM (8bit)
+#ifdef TEST_MODE
+	// sin wave
+	static int c = 0, n = 0;
+	uint16_t s = sin(c/100.0 * 2*3.14)*(sin(n/1000000.0*2*3.14)*65535); c++; n++;
+	if (c>100) c = 0;
+	if (n>1000000) n = 0;
+	uint8_t *l = (uint8_t *)&s;
+#else
+	uint8_t *l = (uint8_t *)&left;
+#endif
+	uint8_t *r = (uint8_t *)&right;
+	FTM0_C2V = *l++;	// 9
+	FTM0_C3V = *l;		// 10
+	FTM0_C5V = *r++;	// 20
+	FTM0_C6V = *r;		// 21
 	FTM0_SYNC |= 0x80;	// set PWM value update
+#endif
 }
 
 void setup()
@@ -53,7 +82,7 @@ void setup()
 //	MCG_C6 = MCG_C6_PLLS | MCG_C6_VDIV0(29);
 
 	// LED
-	pinMode(13, OUTPUT);
+//	pinMode(13, OUTPUT);
 
 	// PWM (FTM0)
 	pinMode(9, OUTPUT);	// left
@@ -61,13 +90,31 @@ void setup()
 	pinMode(20, OUTPUT);	// right
 	pinMode(21, OUTPUT);
 
-
 //	analogWriteResolution(8);		// 8bit/Resolution (234375 Hz)
-	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
+//	analogWriteFrequency(10, 234375);	// FTM0 8bit (o)
 	CORE_PIN9_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 	CORE_PIN10_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 	CORE_PIN20_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 	CORE_PIN21_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+
+#if F_CPU > 16000000
+#define F_TIMER (F_PLL/2)
+#else 
+#define F_TIMER (F_PLL)
+#endif
+	/*for (prescale = 0; prescale < 7; prescale++) {
+		minfreq = (float)(ftmClock >> prescale) / 65536.0f;	//Use ftmClock instead of F_TIMER
+		if (frequency >= minfreq) break;
+	}*/
+	//mod = (float)(ftmClock >> prescale) / frequency - 0.5f;	//Use ftmClock instead of F_TIMER
+	//if (mod > 65535) mod = 65535;
+// echo $((90000000/65536))=1373 echo $((180000000/234375))=768
+	FTM0_SC = 0;
+	FTM0_CNT = 0;
+	FTM0_MOD = 384; // mod
+//	FTM0_MOD = 333; // mod 90000000/270000
+//	FTM0_MOD = 300; // mod 90000000/300000
+	FTM0_SC = FTM_SC_CLKS(1) | FTM_SC_PS(0); // prescale
 
 /*	FTM0_OUTMASK = 0xFF;            // Use mask to disable outputs
 	CORE_PIN9_CONFIG  = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
