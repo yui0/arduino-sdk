@@ -20,20 +20,6 @@
 // https://forum.pjrc.com/threads/34855-Distorted-audio-when-using-USB-input-on-Teensy-3-1
 //#define MACOSX_ADAPTIVE_LIMIT
 
-/*int fifo_read(struct fifo_t *f, uint32_t *a)
-{
-	if (f->tail != f->head) {		// see if any data is available
-		*a = f->buf[f->tail];		// grab a byte from the buffer
-		f->tail++;			// increment the tail
-		if (f->tail == f->size) {	// check for wrap-around
-			f->tail = 0;
-		}
-	} else {
-		*a = 0;
-		return 0; // number of bytes read
-	}
-	return 1;
-}*/
 uint32_t *fifo_read(struct fifo_t *f)
 {
 	uint32_t *p = 0;
@@ -46,29 +32,9 @@ uint32_t *fifo_read(struct fifo_t *f)
 	}
 	return p;
 }
-/*int fifo_read(struct fifo_t *f, uint32_t *a)
-{
-	if (f->tail == f->head) {
-		*a = 0;
-		static int count = 0;
-		count++;
-		if (count>44100/2) {
-			count = 0;
-			return 1;
-		}
-		return 0;		// number of bytes read
-	}
-	*a = f->buf[f->tail++];		// grab a byte from the buffer
-	if (f->tail == f->size) {	// check for wrap-around
-		f->tail = 0;
-	}
-	return 1;
-}*/
 
-int fifo_write(struct fifo_t *f, const uint32_t *buf, int n)
+int fifo_write(struct fifo_t *f, const uint32_t *p, int n)
 {
-	const uint32_t *p = buf;
-
 	for (int i=0; i<n; i++) {
 		// first check to see if there is space in the buffer
 		if ((f->head+1 == f->tail) || ((f->head+1 == f->size) && (f->tail == 0))) {
