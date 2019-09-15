@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -33,32 +33,36 @@
 
 #include "kinetis.h"
 
-// uncomment to enable 9 bit formats
+// Uncomment to enable 9 bit formats.  These are default disabled to save memory.
 //#define SERIAL_9BIT_SUPPORT
+//
+// On Windows & Linux, this file is in Arduino's hardware/teensy/avr/cores/teensy3
+//   folder.  The Windows installer puts Arduino in C:\Program Files (x86)\Arduino
+// On Macintosh, you must control-click Arduino and select "Show Package Contents", then
+//   look in Contents/Java/hardware/teensy/avr/cores/teensy3 to find this file.
+//
+// Teensy 3.x boards support 9 bit mode on all their serial ports
+// Teensy LC only supports 9 bit mode on Serial1.  Serial2 & Serial3 can't use 9 bits.
 
 
 #define SERIAL_7E1 0x02
 #define SERIAL_7O1 0x03
 #define SERIAL_8N1 0x00
-#define SERIAL_8N2 0x04
 #define SERIAL_8E1 0x06
 #define SERIAL_8O1 0x07
 #define SERIAL_7E1_RXINV 0x12
 #define SERIAL_7O1_RXINV 0x13
 #define SERIAL_8N1_RXINV 0x10
-#define SERIAL_8N2_RXINV 0x14
 #define SERIAL_8E1_RXINV 0x16
 #define SERIAL_8O1_RXINV 0x17
 #define SERIAL_7E1_TXINV 0x22
 #define SERIAL_7O1_TXINV 0x23
 #define SERIAL_8N1_TXINV 0x20
-#define SERIAL_8N2_TXINV 0x24
 #define SERIAL_8E1_TXINV 0x26
 #define SERIAL_8O1_TXINV 0x27
 #define SERIAL_7E1_RXINV_TXINV 0x32
 #define SERIAL_7O1_RXINV_TXINV 0x33
 #define SERIAL_8N1_RXINV_TXINV 0x30
-#define SERIAL_8N2_RXINV_TXINV 0x34
 #define SERIAL_8E1_RXINV_TXINV 0x36
 #define SERIAL_8O1_RXINV_TXINV 0x37
 #ifdef SERIAL_9BIT_SUPPORT
@@ -86,6 +90,16 @@
 #define SERIAL_8O2_TXINV (SERIAL_8O1_TXINV | SERIAL_2STOP_BITS)
 #define SERIAL_8E2_RXINV_TXINV (SERIAL_8E1_RXINV_TXINV | SERIAL_2STOP_BITS)
 #define SERIAL_8O2_RXINV_TXINV (SERIAL_8O1_RXINV_TXINV | SERIAL_2STOP_BITS)
+#define SERIAL_8N2 (SERIAL_8N1 | SERIAL_2STOP_BITS)
+#define SERIAL_8N2_RXINV (SERIAL_8N1_RXINV | SERIAL_2STOP_BITS)
+#define SERIAL_8N2_TXINV (SERIAL_8N1_TXINV | SERIAL_2STOP_BITS)
+#define SERIAL_8N2_RXINV_TXINV (SERIAL_8N1_RXINV_TXINV | SERIAL_2STOP_BITS)
+#else
+// for Teensy 3.0-3.2 we can fake 2 stop bits by using 9 bit mode
+#define SERIAL_8N2 0x04
+#define SERIAL_8N2_RXINV 0x14
+#define SERIAL_8N2_TXINV 0x24
+#define SERIAL_8N2_RXINV_TXINV 0x34
 #endif
 // bit0: parity, 0=even, 1=odd
 // bit1: parity, 0=disable, 1=enable

@@ -929,6 +929,7 @@ parse_hex_line(char *line)
 			sum += ((i >> 8) & 255) + (i & 255);
         		if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
+			if ((i << 16) > MAX_MEMORY_SIZE) return 1;
 			extended_addr = i << 16;
 			//printf("ext addr = %08X\n", extended_addr);
 		}
@@ -1058,6 +1059,7 @@ static const struct {
 	{"mk20dx256",   262144,  1024},
 	{"mk66fx1m0",  1048576,  1024},
 	{"mk64fx512",   524288,  1024},
+	{"imxrt1062",  2097152,  1024},
 
 	// Add duplicates that match friendly Teensy Names
 	// Match board names in boards.txt
@@ -1068,6 +1070,7 @@ static const struct {
 	{"TEENSY31",   262144,  1024},
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
+	{"TEENSY40",  2097152,  1024},
 #endif
 	{NULL, 0, 0},
 };

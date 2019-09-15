@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -79,14 +79,20 @@ static volatile uint8_t transmitting = 0;
   #define rts_assert()        *(rts_pin+8) = rts_mask;
   #define rts_deassert()      *(rts_pin+4) = rts_mask;
 #endif
-#if SERIAL1_TX_BUFFER_SIZE > 255
+#if SERIAL1_TX_BUFFER_SIZE > 65535
+static volatile uint32_t tx_buffer_head = 0;
+static volatile uint32_t tx_buffer_tail = 0;
+#elif SERIAL1_TX_BUFFER_SIZE > 255
 static volatile uint16_t tx_buffer_head = 0;
 static volatile uint16_t tx_buffer_tail = 0;
 #else
 static volatile uint8_t tx_buffer_head = 0;
 static volatile uint8_t tx_buffer_tail = 0;
 #endif
-#if SERIAL1_RX_BUFFER_SIZE > 255
+#if SERIAL1_RX_BUFFER_SIZE > 65535
+static volatile uint32_t rx_buffer_head = 0;
+static volatile uint32_t rx_buffer_tail = 0;
+#elif SERIAL1_RX_BUFFER_SIZE > 255
 static volatile uint16_t rx_buffer_head = 0;
 static volatile uint16_t rx_buffer_tail = 0;
 #else
@@ -139,6 +145,7 @@ void serial_begin(uint32_t divisor)
 		#endif
 	}
 #if defined(HAS_KINETISK_UART0)
+	if (divisor < 32) divisor = 32;
 	UART0_BDH = (divisor >> 13) & 0x1F;
 	UART0_BDL = (divisor >> 5) & 0xFF;
 	UART0_C4 = divisor & 0x1F;
@@ -152,6 +159,7 @@ void serial_begin(uint32_t divisor)
 	UART0_PFIFO = 0;
 #endif
 #elif defined(HAS_KINETISL_UART0)
+	if (divisor < 1) divisor = 1;
 	UART0_BDH = (divisor >> 8) & 0x1F;
 	UART0_BDL = divisor & 0xFF;
 	UART0_C1 = 0;
@@ -220,6 +228,8 @@ void serial_end(void)
 		case 26: CORE_PIN26_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
 		#endif
 	}
+	UART0_S1;
+	UART0_D; // clear leftover error status
 	rx_buffer_head = 0;
 	rx_buffer_tail = 0;
 	if (rts_pin) rts_deassert();

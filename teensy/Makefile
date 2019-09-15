@@ -5,21 +5,22 @@ TARGET = $(notdir $(CURDIR))
 TEENSY = 36
 
 # Set to 24000000, 48000000, or 96000000 to set CPU core speed
-TEENSY_CORE_SPEED = 120000000
 #TEENSY_CORE_SPEED = 180000000
 #TEENSY_CORE_SPEED = 216000000
-#TEENSY_CORE_SPEED = 240000000
+#TEENSY_CORE_SPEED = 240000000	# Best!!
+TEENSY_CORE_SPEED = 256000000
 
 # Some libraries will require this to be defined
 # If you define this, you will break the default main.cpp
-#ARDUINO = 10600
+#ARDUINO = 10805
 
 # configurable options
 #OPTIONS = -DUSB_SERIAL -DLAYOUT_US_ENGLISH
 OPTIONS = -DUSB_AUDIO -DLAYOUT_US_ENGLISH
 
 # directory to build in
-BUILDDIR = $(abspath $(CURDIR)/build)
+#BUILDDIR = $(abspath $(CURDIR)/build)
+BUILDDIR = /tmp/build
 
 #************************************************************************
 # Location of Teensyduino utilities, Toolchain, and Arduino Libraries.
@@ -47,6 +48,7 @@ LIBRARYPATH = libraries
 
 # path location for the arm-none-eabi compiler
 COMPILERPATH = $(TOOLSPATH)/arm/bin
+#COMPILERPATH = $(TOOLSPATH)/armclang/bin
 
 #************************************************************************
 # Settings below this point usually do not need to be edited
@@ -54,16 +56,16 @@ COMPILERPATH = $(TOOLSPATH)/arm/bin
 
 # CPPFLAGS = compiler options for C and C++
 #CPPFLAGS = -Wall -g -Os -mthumb -ffunction-sections -fdata-sections -nostdlib -MMD $(OPTIONS) -DTEENSYDUINO=124 -DF_CPU=$(TEENSY_CORE_SPEED) -Isrc -I$(COREPATH)
-CPPFLAGS = -Wall -Os -mthumb -ffunction-sections -fdata-sections -nostdlib -MMD $(OPTIONS) -DTEENSYDUINO=124 -DF_CPU=$(TEENSY_CORE_SPEED) -Isrc -I$(COREPATH)
+CPPFLAGS = -Wall -Ofast -fomit-frame-pointer -fmodulo-sched -fmodulo-sched-allow-regmoves -flto -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload -ftree-vectorize -fipa-cp-clone -fgraphite-identity -floop-block -floop-interchange -floop-strip-mine -ftree-loop-distribution -ftree-loop-linear -mthumb -ffunction-sections -fdata-sections -nostdlib -MMD $(OPTIONS) -DTEENSYDUINO=144 -DF_CPU=$(TEENSY_CORE_SPEED) -Isrc -I$(COREPATH)
 
 # compiler options for C++ only
-CXXFLAGS = -std=gnu++0x -felide-constructors -fno-exceptions -fno-rtti
+CXXFLAGS = -std=gnu++14 -felide-constructors -fno-exceptions -fno-rtti
 
 # compiler options for C only
 CFLAGS =
 
 # linker options
-LDFLAGS = -Os -Wl,--gc-sections -mthumb
+LDFLAGS = -s -Wl,--gc-sections,--defsym=__rtc_localtime=0 --specs=nano.specs -mthumb
 
 # additional libraries to link
 LIBS = -lm
@@ -88,11 +90,11 @@ else ifeq ($(TEENSY), 35)
     LDFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T$(LDSCRIPT)
     LIBS += -larm_cortexM4lf_math
 else ifeq ($(TEENSY), 36)
-    CPPFLAGS += -D__MK66FX1M0__ -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    CPPFLAGS += -D__MK66FX1M0__ -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mtune=cortex-m4
     LDSCRIPT = $(COREPATH)/mk66fx1m0.ld
     LDFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T$(LDSCRIPT)
-    #LIBS += -larm_cortexM4lf_math
-    LIBS += -larm_cortexM4l_math
+    LIBS += -larm_cortexM4lf_math
+    #LIBS += -larm_cortexM4l_math
 else
     $(error Invalid setting for TEENSY)
 endif
@@ -105,16 +107,28 @@ else
 endif
 
 # names for the compiler programs
-CC = $(abspath $(COMPILERPATH))/arm-none-eabi-gcc
-CXX = $(abspath $(COMPILERPATH))/arm-none-eabi-g++
-OBJCOPY = $(abspath $(COMPILERPATH))/arm-none-eabi-objcopy
-SIZE = $(abspath $(COMPILERPATH))/arm-none-eabi-size
+#CLANG = 1
+ifdef CLANG
+	export ARMLMD_LICENSE_FILE = $(abspath $(TOOLSPATH))/armclang/license.txt
+	ARM_PRODUCT_PATH = $(abspath $(TOOLSPATH))/sw/mappings
+	CC = $(abspath $(COMPILERPATH))/armclang
+	CXX = $(abspath $(COMPILERPATH))/armclang
+	OBJCOPY = $(abspath $(COMPILERPATH))/arm-none-eabi-objcopy
+	SIZE = $(abspath $(COMPILERPATH))/arm-none-eabi-size
+else
+	AS = $(abspath $(COMPILERPATH))/arm-none-eabi-as
+	CC = $(abspath $(COMPILERPATH))/arm-none-eabi-gcc
+	CXX = $(abspath $(COMPILERPATH))/arm-none-eabi-g++
+	OBJCOPY = $(abspath $(COMPILERPATH))/arm-none-eabi-objcopy
+	SIZE = $(abspath $(COMPILERPATH))/arm-none-eabi-size
+endif
 
 # automatically create lists of the sources and objects
 LC_FILES := $(wildcard $(LIBRARYPATH)/*/*.c)
 LCPP_FILES := $(wildcard $(LIBRARYPATH)/*/*.cpp)
 TC_FILES := $(wildcard $(COREPATH)/*.c)
 TCPP_FILES := $(wildcard $(COREPATH)/*.cpp)
+S_FILES := $(wildcard $(COREPATH)/*.S)
 C_FILES := $(wildcard src/*.c)
 CPP_FILES := $(wildcard src/*.cpp)
 INO_FILES := $(wildcard src/*.ino)
@@ -122,7 +136,7 @@ INO_FILES := $(wildcard src/*.ino)
 # include paths for libraries
 L_INC := $(foreach lib,$(filter %/, $(wildcard $(LIBRARYPATH)/*/)), -I$(lib))
 
-SOURCES := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o) $(INO_FILES:.ino=.o) $(TC_FILES:.c=.o) $(TCPP_FILES:.cpp=.o) $(LC_FILES:.c=.o) $(LCPP_FILES:.cpp=.o)
+SOURCES := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o) $(INO_FILES:.ino=.o) $(TC_FILES:.c=.o) $(TCPP_FILES:.cpp=.o) $(LC_FILES:.c=.o) $(LCPP_FILES:.cpp=.o) $(S_FILES:.S=.o)
 OBJS := $(foreach src,$(SOURCES), $(BUILDDIR)/$(src))
 
 all: hex
@@ -138,10 +152,15 @@ post_compile: $(TARGET).hex
 	@$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -w -v "$(basename $<)".hex
 
 reboot:
-	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -r
-#	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -w -v $(abspath $(TOOLSPATH))/teensy_loader_cli_src/rebootor/rebootor.hex
+	@-$(abspath $(TOOLSPATH))/teensy_loader_cli -mmcu=mk66fx1m0 -r ../teensy_loader_cli_src/rebootor/rebootor.hex
 
-upload: post_compile reboot
+#upload: post_compile reboot
+upload: post_compile
+
+$(BUILDDIR)/%.o: %.S
+	@echo -e "[AS]\t$<"
+	@mkdir -p "$(dir $@)"
+	@$(CC) $(SFLAGS) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
 
 $(BUILDDIR)/%.o: %.c
 	@echo -e "[CC]\t$<"

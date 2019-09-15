@@ -1,0 +1,9 @@
+diff -Nuarp teensy3.orig teensy3 >core.patch
+
+cp -a teensy3 teensy3.orig
+cd teensy3
+patch -p1 < ../core.patch
+cd ..
+mv core.patch core.patch.orig
+diff -Nuarp teensy3.orig teensy3 >core.patch
+

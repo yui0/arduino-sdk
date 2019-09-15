@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -79,14 +79,20 @@ static volatile uint8_t transmitting = 0;
   #define rts_assert()        *(rts_pin+8) = rts_mask;
   #define rts_deassert()      *(rts_pin+4) = rts_mask;
 #endif
-#if SERIAL3_TX_BUFFER_SIZE > 255
+#if SERIAL3_TX_BUFFER_SIZE > 65535
+static volatile uint32_t tx_buffer_head = 0;
+static volatile uint32_t tx_buffer_tail = 0;
+#elif SERIAL3_TX_BUFFER_SIZE > 255
 static volatile uint16_t tx_buffer_head = 0;
 static volatile uint16_t tx_buffer_tail = 0;
 #else
 static volatile uint8_t tx_buffer_head = 0;
 static volatile uint8_t tx_buffer_tail = 0;
 #endif
-#if SERIAL3_RX_BUFFER_SIZE > 255
+#if SERIAL3_RX_BUFFER_SIZE > 65535
+static volatile uint32_t rx_buffer_head = 0;
+static volatile uint32_t rx_buffer_tail = 0;
+#elif SERIAL3_RX_BUFFER_SIZE > 255
 static volatile uint16_t rx_buffer_head = 0;
 static volatile uint16_t rx_buffer_tail = 0;
 #else
@@ -128,12 +134,14 @@ void serial3_begin(uint32_t divisor)
 	}
 #endif
 #if defined(HAS_KINETISK_UART2)
+	if (divisor < 32) divisor = 32;
 	UART2_BDH = (divisor >> 13) & 0x1F;
 	UART2_BDL = (divisor >> 5) & 0xFF;
 	UART2_C4 = divisor & 0x1F;
 	UART2_C1 = 0;
 	UART2_PFIFO = 0;
 #elif defined(HAS_KINETISL_UART2)
+	if (divisor < 1) divisor = 1;
 	UART2_BDH = (divisor >> 8) & 0x1F;
 	UART2_BDL = divisor & 0xFF;
 	UART2_C1 = 0;
@@ -158,7 +166,7 @@ void serial3_format(uint32_t format)
 	c = UART2_C3 & ~0x10;
 	if (format & 0x20) c |= 0x10;		// tx invert
 	UART2_C3 = c;
-#ifdef SERIAL_9BIT_SUPPORT
+#if defined(SERIAL_9BIT_SUPPORT) && !defined(KINETISL)
 	c = UART2_C4 & 0x1F;
 	if (format & 0x08) c |= 0x20;		// 9 bit mode with parity (requires 10 bits)
 	UART2_C4 = c;
@@ -194,6 +202,8 @@ void serial3_end(void)
 		case 20: CORE_PIN20_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break;
 	}
 	#endif	
+	UART2_S1;
+	UART2_D; // clear leftover error status
 	rx_buffer_head = 0;
 	rx_buffer_tail = 0;
 	if (rts_pin) rts_deassert();

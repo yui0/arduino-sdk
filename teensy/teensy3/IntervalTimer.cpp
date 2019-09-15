@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2016 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -84,6 +84,11 @@ bool IntervalTimer::beginCycles(void (*funct)(), uint32_t cycles)
 void IntervalTimer::end() {
 	if (channel) {
 		int index = channel - KINETISK_PIT_CHANNELS;
+#if defined(KINETISK)
+		NVIC_DISABLE_IRQ(IRQ_PIT_CH0 + index);
+#elif defined(KINETISL)
+		// TODO: disable IRQ_PIT, but only if both instances ended
+#endif
 		funct_table[index] = dummy_funct;
 		channel->TCTRL = 0;
 #if defined(KINETISL)

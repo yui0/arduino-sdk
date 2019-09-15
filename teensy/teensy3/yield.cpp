@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2014 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -10,10 +10,10 @@
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
  *
- * 1. The above copyright notice and this permission notice shall be 
+ * 1. The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  *
- * 2. If the Software is incorporated into a build system that allows 
+ * 2. If the Software is incorporated into a build system that allows
  * selection among a list of target devices, then similar target
  * devices manufactured by PJRC.COM must be included in the list of
  * target devices and selectable in the same manner.
@@ -28,10 +28,8 @@
  * SOFTWARE.
  */
 
-#include "core_pins.h"
-#include "HardwareSerial.h"
-#include "usb_serial.h"
-#include "usb_seremu.h"
+#include <Arduino.h>
+#include "EventResponder.h"
 
 void yield(void) __attribute__ ((weak));
 void yield(void)
@@ -40,7 +38,6 @@ void yield(void)
 
 	if (running) return; // TODO: does this need to be atomic?
 	running = 1;
-#ifdef  SEREMU_INTERFACE
 	if (Serial.available()) serialEvent();
 	if (Serial1.available()) serialEvent1();
 	if (Serial2.available()) serialEvent2();
@@ -54,6 +51,6 @@ void yield(void)
 #if defined(HAS_KINETISK_UART5) || defined (HAS_KINETISK_LPUART0)
 	if (Serial6.available()) serialEvent6();
 #endif
-#endif
 	running = 0;
+	EventResponder::runFromYield();
 };

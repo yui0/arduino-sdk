@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -73,11 +73,17 @@ class usb_serial_class : public Stream
 public:
 	constexpr usb_serial_class() {}
         void begin(long) {
-		uint32_t millis_begin = systick_millis_count;
-		while (!(*this)) {
-			// wait up to 1 second for Arduino Serial Monitor
-			if ((uint32_t)(systick_millis_count - millis_begin) > 1000) break;
-		}
+		//uint32_t millis_begin = systick_millis_count;
+		//disabled for now - causes more trouble than it solves?
+		//while (!(*this)) {
+			// wait up to 2.5 seconds for Arduino Serial Monitor
+			// Yes, this is a long time, but some Windows systems open
+			// the port very slowly.  This wait allows programs for
+			// Arduino Uno to "just work" (without forcing a reboot when
+			// the port is opened), and when no PC is connected the user's
+			// sketch still gets to run normally after this wait time.
+			//if ((uint32_t)(systick_millis_count - millis_begin) > 2500) break;
+		//}
 	}
         void end() { /* TODO: flush output and shut down USB port */ };
         virtual int available() { return usb_serial_available(); }
@@ -100,9 +106,8 @@ public:
         uint8_t numbits(void) { return usb_cdc_line_coding[1] >> 16; }
         uint8_t dtr(void) { return (usb_cdc_line_rtsdtr & USB_SERIAL_DTR) ? 1 : 0; }
         uint8_t rts(void) { return (usb_cdc_line_rtsdtr & USB_SERIAL_RTS) ? 1 : 0; }
-        operator bool() { return usb_configuration &&
-		(usb_cdc_line_rtsdtr & (USB_SERIAL_DTR | USB_SERIAL_RTS)) &&
-		((uint32_t)(systick_millis_count - usb_cdc_line_rtsdtr_millis) >= 25);
+        operator bool() { return usb_configuration && (usb_cdc_line_rtsdtr & USB_SERIAL_DTR) &&
+		((uint32_t)(systick_millis_count - usb_cdc_line_rtsdtr_millis) >= 15);
 	}
 	size_t readBytes(char *buffer, size_t length) {
 		size_t count=0;

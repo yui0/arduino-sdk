@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2016 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -44,6 +44,14 @@
 //#include "HardwareSerial.h"
 #include "usb_mem.h"
 #include <string.h> // for memset
+
+// This code has a known bug with compiled with -O2 optimization on gcc 5.4.1
+// https://forum.pjrc.com/threads/53574-Teensyduino-1-43-Beta-2?p=186177&viewfull=1#post186177
+#if defined(__MKL26Z64__)
+#pragma GCC optimize ("Os")
+#else
+#pragma GCC optimize ("O3")
+#endif
 
 // buffer descriptor table
 
@@ -461,6 +469,10 @@ static void usb_setup(void)
 			reply_buffer[0] = MULTITOUCH_FINGERS;
 			data = reply_buffer;
 			datalen = 1;
+		} else if (setup.wValue == 0x0100 && setup.wIndex == MULTITOUCH_INTERFACE) {
+			memset(reply_buffer, 0, 8);
+			data = reply_buffer;
+			datalen = 8;
 		} else {
 			endpoint0_stall();
 			return;
@@ -1117,7 +1129,7 @@ void usb_init(void)
 #ifdef HAS_KINETIS_MPU
 	MPU_RGDAAC0 |= 0x03000000;
 #endif
-#if F_CPU == 180000000 || F_CPU == 216000000
+#if F_CPU == 180000000 || F_CPU == 216000000 || F_CPU == 256000000
 	// if using IRC48M, turn on the USB clock recovery hardware
 	USB0_CLK_RECOVER_IRC_EN = USB_CLK_RECOVER_IRC_EN_IRC_EN | USB_CLK_RECOVER_IRC_EN_REG_EN;
 	USB0_CLK_RECOVER_CTRL = USB_CLK_RECOVER_CTRL_CLOCK_RECOVER_EN |

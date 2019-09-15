@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -42,7 +42,12 @@
 #define HEX 16
 #define OCT 8
 #define BIN 2
-#define BYTE 0
+
+// BYTE was defined in very old versions of Arduino
+// maybe this now causes more trouble than it's worth?
+//#ifndef BYTE
+//#define BYTE 0
+//#endif
 
 class __FlashStringHelper;
 

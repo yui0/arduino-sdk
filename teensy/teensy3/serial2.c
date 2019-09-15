@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -78,14 +78,20 @@ static volatile uint8_t transmitting = 0;
   #define rts_assert()        *(rts_pin+8) = rts_mask;
   #define rts_deassert()      *(rts_pin+4) = rts_mask;
 #endif
-#if SERIAL2_TX_BUFFER_SIZE > 255
+#if SERIAL2_TX_BUFFER_SIZE > 65535
+static volatile uint32_t tx_buffer_head = 0;
+static volatile uint32_t tx_buffer_tail = 0;
+#elif SERIAL2_TX_BUFFER_SIZE > 255
 static volatile uint16_t tx_buffer_head = 0;
 static volatile uint16_t tx_buffer_tail = 0;
 #else
 static volatile uint8_t tx_buffer_head = 0;
 static volatile uint8_t tx_buffer_tail = 0;
 #endif
-#if SERIAL2_RX_BUFFER_SIZE > 255
+#if SERIAL2_RX_BUFFER_SIZE > 65535
+static volatile uint32_t rx_buffer_head = 0;
+static volatile uint32_t rx_buffer_tail = 0;
+#elif SERIAL2_RX_BUFFER_SIZE > 255
 static volatile uint16_t rx_buffer_head = 0;
 static volatile uint16_t rx_buffer_tail = 0;
 #else
@@ -139,6 +145,7 @@ void serial2_begin(uint32_t divisor)
 	CORE_PIN10_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3);
 #endif
 #if defined(HAS_KINETISK_UART1)
+	if (divisor < 32) divisor = 32;
 	UART1_BDH = (divisor >> 13) & 0x1F;
 	UART1_BDL = (divisor >> 5) & 0xFF;
 	UART1_C4 = divisor & 0x1F;
@@ -152,6 +159,7 @@ void serial2_begin(uint32_t divisor)
 	UART1_PFIFO = 0;
 #endif
 #elif defined(HAS_KINETISL_UART1)
+	if (divisor < 1) divisor = 1;
 	UART1_BDH = (divisor >> 8) & 0x1F;
 	UART1_BDL = divisor & 0xFF;
 	UART1_C1 = 0;
@@ -176,7 +184,7 @@ void serial2_format(uint32_t format)
 	c = UART1_C3 & ~0x10;
 	if (format & 0x20) c |= 0x10;		// tx invert
 	UART1_C3 = c;
-#ifdef SERIAL_9BIT_SUPPORT
+#if defined(SERIAL_9BIT_SUPPORT) && !defined(KINETISL)
 	c = UART1_C4 & 0x1F;
 	if (format & 0x08) c |= 0x20;		// 9 bit mode with parity (requires 10 bits)
 	UART1_C4 = c;
@@ -219,6 +227,8 @@ void serial2_end(void)
 	CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);  // PTC3
 	CORE_PIN10_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); // PTC4
 #endif
+	UART1_S1;
+	UART1_D; // clear leftover error status
 	rx_buffer_head = 0;
 	rx_buffer_tail = 0;
 	if (rts_pin) rts_deassert();

@@ -1,10 +1,10 @@
-Teensy 3.X Project Template
+Teensy 3.X / 4.0 Project Template
 ===========================
 
 Purpose
 -------
 
-An easy starting point for a Teensy 3.X project which might not fit inside the
+An easy starting point for a Teensy 3.X / 4.0 project which might not fit inside the
 arduino build environment.
 
 
@@ -50,6 +50,7 @@ Where everything came from
 --------------------------
 
 - The `teensy3` sub-folder is taken from [The Teensy 3 Cores](https://github.com/PaulStoffregen/cores/tree/master/teensy3)
+- The `teensy4` sub-folder is taken from [The Teensy 4 Cores](https://github.com/PaulStoffregen/cores/tree/master/teensy4)
 - The `tools` sub-folder is taken from [Teensyduino](http://www.pjrc.com/teensy/td_download.html)
 - The `src/main.cpp` file is moved, unmodified from `teensy3/main.cpp`
 - The `Makefile` file is moved, modified from `teensy3/Makefile`

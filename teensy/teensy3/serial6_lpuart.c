@@ -1,6 +1,6 @@
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
- * Copyright (c) 2013 PJRC.COM, LLC.
+ * Copyright (c) 2017 PJRC.COM, LLC.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -460,4 +460,4 @@ void lpuart0_status_isr(void)
 	}
 }
 
-#endif // HAS_KINETISK_UART4
+#endif // HAS_KINETISK_LPUART0
