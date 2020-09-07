@@ -1,6 +1,7 @@
 #include "imxrt.h"
 #include "core_pins.h"
 #include "debug/printf.h"
+#include "avr/pgmspace.h"
 
 static uint8_t calibrating;
 static uint8_t analog_config_bits = 10;
@@ -18,17 +19,10 @@ const uint8_t pin_to_channel[] = { // pg 482
 	0,	// 7/A7  AD_B1_11
 	13,	// 8/A8  AD_B1_08
 	14,	// 9/A9  AD_B1_09
-#if 0
-	128,	// 10
-	128,	// 11
-	128,	// 12
-	128,	// 13
-#else
 	1,	// 24/A10 AD_B0_12 
 	2,	// 25/A11 AD_B0_13
 	128+3,	// 26/A12 AD_B1_14 - only on ADC2, 3
 	128+4,	// 27/A13 AD_B1_15 - only on ADC2, 4
-#endif	
 	7,	// 14/A0  AD_B1_02
 	8,	// 15/A1  AD_B1_03
 	12,	// 16/A2  AD_B1_07
@@ -42,7 +36,23 @@ const uint8_t pin_to_channel[] = { // pg 482
 	1,	// 24/A10 AD_B0_12
 	2,	// 25/A11 AD_B0_13
 	128+3,	// 26/A12 AD_B1_14 - only on ADC2, 3
-	128+4	// 27/A13 AD_B1_15 - only on ADC2, 4
+	128+4,	// 27/A13 AD_B1_15 - only on ADC2, 4
+#ifdef ARDUINO_TEENSY41
+	255,	// 28
+	255,	// 29
+	255,	// 30
+	255,	// 31
+	255,	// 32
+	255,	// 33
+	255,	// 34
+	255,	// 35
+	255,	// 36
+	255,	// 37
+	128+1,	// 38/A14 AD_B1_12 - only on ADC2, 1
+	128+2,	// 39/A15 AD_B1_13 - only on ADC2, 2
+	9,	// 40/A16 AD_B1_04
+	10,	// 41/A17 AD_B1_05
+#endif
 };
 
 
@@ -50,6 +60,7 @@ static void wait_for_cal(void)
 {
 	//printf("wait_for_cal\n");
 	while (ADC1_GC & ADC_GC_CAL) ;
+	while (ADC2_GC & ADC_GC_CAL) ;
 	// TODO: check CALF, but what do to about CAL failure?
 	calibrating = 0;
 	//printf("cal complete\n");
@@ -61,6 +72,7 @@ int analogRead(uint8_t pin)
 	if (pin > sizeof(pin_to_channel)) return 0;
 	if (calibrating) wait_for_cal();
 	uint8_t ch = pin_to_channel[pin];
+	if (ch == 255) return 0;
 //	printf("%d\n", ch);
 //	if (ch > 15) return 0;
 	if(!(ch & 0x80)) {
@@ -139,8 +151,8 @@ void analogReadAveraging(unsigned int num)
       mode1 |= 0;
     }
 
-  ADC1_CFG |= mode;
-  ADC2_CFG |= mode1;
+  ADC1_CFG = mode;
+  ADC2_CFG = mode1;
   
   if(num >= 4){
       ADC1_GC |= ADC_GC_AVGE;// turns on averaging
@@ -150,8 +162,7 @@ void analogReadAveraging(unsigned int num)
 
 #define MAX_ADC_CLOCK 20000000
 
-__attribute__((section(".progmem")))
-void analog_init(void)
+FLASHMEM void analog_init(void)
 {
 	uint32_t mode, avg=0;
 
@@ -197,16 +208,16 @@ void analog_init(void)
 	}
 #endif
 	//ADC1
-	ADC1_CFG = mode | ADC_HC_AIEN | ADC_CFG_ADHSC;
+	ADC1_CFG = mode | ADC_CFG_ADHSC;
 	ADC1_GC = avg | ADC_GC_CAL;		// begin cal
 	calibrating = 1;
 	while (ADC1_GC & ADC_GC_CAL) ;
 	calibrating = 0;
 	//ADC2
-	ADC2_CFG = mode | ADC_HC_AIEN | ADC_CFG_ADHSC;
+	ADC2_CFG = mode | ADC_CFG_ADHSC;
 	ADC2_GC = avg | ADC_GC_CAL;		// begin cal
 	calibrating = 1;
-	while (ADC1_GC & ADC_GC_CAL) ;
+	while (ADC2_GC & ADC_GC_CAL) ;
 	calibrating = 0;
 }
 

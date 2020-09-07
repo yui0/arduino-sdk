@@ -90,7 +90,8 @@ const char *filename=NULL;
 int main(int argc, char **argv)
 {
 	unsigned char buf[2048];
-	int num, addr, r, write_size=block_size+2;
+	int num, addr, r, write_size;
+
 	int first_block=1, waited=0;
 
 	// parse command line arguments
@@ -103,22 +104,20 @@ int main(int argc, char **argv)
 	}
 	printf_verbose("Teensy Loader, Command Line, Version 2.1\n");
 
-	if (boot_only) {
-		if (! teensy_open()) {
-			die("Could not find HalfKay");
-		}
-		printf_verbose("Found HalfKay Bootloader\n");
+	if (block_size == 512 || block_size == 1024) {
+		write_size = block_size + 64;
+	} else {
+		write_size = block_size + 2;
+	};
 
-		boot(buf, block_size+2);
-		exit(0);
+	if (!boot_only) {
+		// read the intel hex file
+		// this is done first so any error is reported before using USB
+		num = read_intel_hex(filename);
+		if (num < 0) die("error reading intel hex file \"%s\"", filename);
+		printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
+			filename, num, (double)num / (double)code_size * 100.0);
 	}
-
-	// read the intel hex file
-	// this is done first so any error is reported before using USB
-	num = read_intel_hex(filename);
-	if (num < 0) die("error reading intel hex file \"%s\"", filename);
-	printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
-		filename, num, (double)num / (double)code_size * 100.0);
 
 	// open the USB device
 	while (1) {
@@ -136,7 +135,7 @@ int main(int argc, char **argv)
 			soft_reboot_device = 0;
 			wait_for_device_to_appear = 1;
 		}
-		if (!wait_for_device_to_appear) die("Unable to open device\n");
+		if (!wait_for_device_to_appear) die("Unable to open device (hint: try -w option)\n");
 		if (!waited) {
 			printf_verbose("Waiting for Teensy device...\n");
 			printf_verbose(" (hint: press the reset button)\n");
@@ -145,6 +144,12 @@ int main(int argc, char **argv)
 		delay(0.25);
 	}
 	printf_verbose("Found HalfKay Bootloader\n");
+
+	if (boot_only) {
+		boot(buf, write_size);
+		teensy_close();
+		return 0;
+	}
 
 	// if we waited for the device, read the hex file again
 	// perhaps it changed while we were waiting?
@@ -270,7 +275,7 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 				continue;
 			}
 			#endif
-      
+
 			return h;
 		}
 	}
@@ -454,13 +459,13 @@ int write_usb_device(HANDLE h, void *buf, int len, int timeout)
 
 void print_win32_err(void)
 {
-        char buf[256];
-        DWORD err;
+	char buf[256];
+	DWORD err;
 
-        err = GetLastError();
-        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-                0, buf, sizeof(buf), NULL);
-        printf("err %ld: %s\n", err, buf);
+	err = GetLastError();
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
+		0, buf, sizeof(buf), NULL);
+	printf("err %ld: %s\n", err, buf);
 }
 
 static HANDLE win32_teensy_handle = NULL;
@@ -892,23 +897,23 @@ int
 parse_hex_line(char *line)
 {
 	int addr, code, num;
-        int sum, len, cksum, i;
-        char *ptr;
+	int sum, len, cksum, i;
+	char *ptr;
 
-        num = 0;
-        if (line[0] != ':') return 0;
-        if (strlen(line) < 11) return 0;
-        ptr = line+1;
-        if (!sscanf(ptr, "%02x", &len)) return 0;
-        ptr += 2;
-        if ((int)strlen(line) < (11 + (len * 2)) ) return 0;
-        if (!sscanf(ptr, "%04x", &addr)) return 0;
-        ptr += 4;
-          /* printf("Line: length=%d Addr=%d\n", len, addr); */
-        if (!sscanf(ptr, "%02x", &code)) return 0;
+	num = 0;
+	if (line[0] != ':') return 0;
+	if (strlen(line) < 11) return 0;
+	ptr = line+1;
+	if (!sscanf(ptr, "%02x", &len)) return 0;
+	ptr += 2;
+	if ((int)strlen(line) < (11 + (len * 2)) ) return 0;
+	if (!sscanf(ptr, "%04x", &addr)) return 0;
+	ptr += 4;
+	  /* printf("Line: length=%d Addr=%d\n", len, addr); */
+	if (!sscanf(ptr, "%02x", &code)) return 0;
 	if (addr + extended_addr + len >= MAX_MEMORY_SIZE) return 0;
-        ptr += 2;
-        sum = (len & 255) + ((addr >> 8) & 255) + (addr & 255) + (code & 255);
+	ptr += 2;
+	sum = (len & 255) + ((addr >> 8) & 255) + (addr & 255) + (code & 255);
 	if (code != 0) {
 		if (code == 1) {
 			end_record_seen = 1;
@@ -918,7 +923,7 @@ parse_hex_line(char *line)
 			if (!sscanf(ptr, "%04x", &i)) return 1;
 			ptr += 4;
 			sum += ((i >> 8) & 255) + (i & 255);
-        		if (!sscanf(ptr, "%02x", &cksum)) return 1;
+			if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
 			extended_addr = i << 4;
 			//printf("ext addr = %05X\n", extended_addr);
@@ -927,28 +932,32 @@ parse_hex_line(char *line)
 			if (!sscanf(ptr, "%04x", &i)) return 1;
 			ptr += 4;
 			sum += ((i >> 8) & 255) + (i & 255);
-        		if (!sscanf(ptr, "%02x", &cksum)) return 1;
+			if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
-			if ((i << 16) > MAX_MEMORY_SIZE) return 1;
 			extended_addr = i << 16;
+			if (code_size > 1048576 && block_size >= 1024 &&
+			   extended_addr >= 0x60000000 && extended_addr < 0x60000000 + code_size) {
+				// Teensy 4.0 HEX files have 0x60000000 FlexSPI offset
+				extended_addr -= 0x60000000;
+			}
 			//printf("ext addr = %08X\n", extended_addr);
 		}
 		return 1;	// non-data line
 	}
 	byte_count += len;
-        while (num != len) {
-                if (sscanf(ptr, "%02x", &i) != 1) return 0;
+	while (num != len) {
+		if (sscanf(ptr, "%02x", &i) != 1) return 0;
 		i &= 255;
 		firmware_image[addr + extended_addr + num] = i;
 		firmware_mask[addr + extended_addr + num] = 1;
-                ptr += 2;
-                sum += i;
-                (num)++;
-                if (num >= 256) return 0;
-        }
-        if (!sscanf(ptr, "%02x", &cksum)) return 0;
-        if (((sum & 255) + (cksum & 255)) & 255) return 0; /* checksum error */
-        return 1;
+		ptr += 2;
+		sum += i;
+		(num)++;
+		if (num >= 256) return 0;
+	}
+	if (!sscanf(ptr, "%02x", &cksum)) return 0;
+	if (((sum & 255) + (cksum & 255)) & 255) return 0; /* checksum error */
+	return 1;
 }
 
 int ihex_bytes_within_range(int begin, int end)
@@ -1059,18 +1068,19 @@ static const struct {
 	{"mk20dx256",   262144,  1024},
 	{"mk66fx1m0",  1048576,  1024},
 	{"mk64fx512",   524288,  1024},
-	{"imxrt1062",  2097152,  1024},
+	{"imxrt1062",  2031616,  1024},
 
 	// Add duplicates that match friendly Teensy Names
 	// Match board names in boards.txt
-	{"TEENSY2",   32256,   128},
-	{"TEENSY2PP", 130048,   256},
-	{"TEENSYLC",     63488,   512},
+	{"TEENSY2",     32256,   128},
+	{"TEENSY2PP",  130048,   256},
+	{"TEENSYLC",    63488,   512},
 	{"TEENSY30",   131072,  1024},
 	{"TEENSY31",   262144,  1024},
+	{"TEENSY32",   262144,  1024},
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
-	{"TEENSY40",  2097152,  1024},
+	{"TEENSY40",  2031616,  1024},
 #endif
 	{NULL, 0, 0},
 };

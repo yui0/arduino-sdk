@@ -5,11 +5,11 @@
 //volatile uint32_t F_BUS = 132000000;
 volatile uint32_t systick_millis_count = 0;
 volatile uint32_t systick_cycle_count = 0;
+volatile uint32_t scale_cpu_cycles_to_microseconds = 0;
 uint32_t systick_safe_read;	 // micros() synchronization
 
-// page 411 says "24 MHz XTALOSC can be the external clock source of SYSTICK"
-// Testing shows the frequency is actually 100 kHz - but how?  Did NXP really
-// hide an undocumented divide-by-240 circuit in the hardware?
+//The 24 MHz XTALOSC can be the external clock source of SYSTICK. 
+//Hardware devides this down to 100KHz. (RM Rev2, 13.3.21 PG 986)
 #define SYSTICK_EXT_FREQ 100000
 
 #if 0
@@ -66,14 +66,18 @@ void delay(uint32_t msec)
 
 uint32_t micros(void)
 {
-	uint32_t ccdelta, usec, smc, scc;
-  do {
-    __LDREXW(&systick_safe_read);
+	uint32_t smc, scc;
+	do {
+		__LDREXW(&systick_safe_read);
 		smc = systick_millis_count;
 		scc = systick_cycle_count;
-  } while ( __STREXW(1, &systick_safe_read));
-	ccdelta = ARM_DWT_CYCCNT - scc;
-	usec = 1000*smc + (ccdelta/(F_CPU_ACTUAL/1000000));
+	} while ( __STREXW(1, &systick_safe_read));
+	uint32_t cyccnt = ARM_DWT_CYCCNT;
+	asm volatile("" : : : "memory");
+	uint32_t ccdelta = cyccnt - scc;
+	uint32_t frac = ((uint64_t)ccdelta * scale_cpu_cycles_to_microseconds) >> 32;
+	if (frac > 1000) frac = 1000;
+	uint32_t usec = 1000*smc + frac;
 	return usec;
 }
 

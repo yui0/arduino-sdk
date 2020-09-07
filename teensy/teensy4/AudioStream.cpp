@@ -32,9 +32,7 @@
 #include <Arduino.h>
 #include "AudioStream.h"
 
-#if defined(__IMXRT1052__)
-  #define MAX_AUDIO_MEMORY 229376
-#elif defined(__IMXRT1062__)
+#if defined(__IMXRT1062__)
   #define MAX_AUDIO_MEMORY 229376
 #endif
 
@@ -54,8 +52,7 @@ void software_isr(void);
 
 // Set up the pool of audio data blocks
 // placing them all onto the free list
-__attribute__((section(".progmem")))
-void AudioStream::initialize_memory(audio_block_t *data, unsigned int num)
+FLASHMEM void AudioStream::initialize_memory(audio_block_t *data, unsigned int num)
 {
 	unsigned int i;
 	unsigned int maxnum = MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2;
@@ -324,13 +321,13 @@ void software_isr(void) // AudioStream::update_all()
 			p->update();
 			// TODO: traverse inputQueueArray and release
 			// any input blocks that weren't consumed?
-			cycles = (ARM_DWT_CYCCNT - cycles) >> 4;
+			cycles = (ARM_DWT_CYCCNT - cycles) >> 6;
 			p->cpu_cycles = cycles;
 			if (cycles > p->cpu_cycles_max) p->cpu_cycles_max = cycles;
 		}
 	}
 	//digitalWriteFast(2, LOW);
-	totalcycles = (ARM_DWT_CYCCNT - totalcycles) >> 4;;
+	totalcycles = (ARM_DWT_CYCCNT - totalcycles) >> 6;
 	AudioStream::cpu_cycles_total = totalcycles;
 	if (totalcycles > AudioStream::cpu_cycles_total_max)
 		AudioStream::cpu_cycles_total_max = totalcycles;

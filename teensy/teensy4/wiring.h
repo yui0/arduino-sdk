@@ -33,6 +33,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "binary.h"
 #include "core_id.h"
 #include "core_pins.h"
@@ -156,7 +157,7 @@ extern long double pow10l(long double x);
 #define interrupts() __enable_irq()
 #define noInterrupts() __disable_irq()
 
-#define clockCyclesPerMicrosecond() ( F_CPU / 1000000L )
+#define clockCyclesPerMicrosecond() ( F_CPU_ACTUAL / 1000000L )
 #define clockCyclesToMicroseconds(a) ( (a) / clockCyclesPerMicrosecond() )
 #define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
 
@@ -190,8 +191,6 @@ void loop(void);
 typedef bool boolean;
 #else
 typedef uint8_t boolean;
-#define false 0
-#define true (!false)
 #endif
 
 #endif
