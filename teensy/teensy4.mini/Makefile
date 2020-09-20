@@ -1,7 +1,7 @@
 # Kazane
 # ©2017-2020 Yuichiro Nakada
 
-TARGET = _blink
+TARGET = kazane
 
 MCU = IMXRT1062
 
@@ -31,11 +31,13 @@ TOOLSPATH = $(CURDIR)/../tools
 COMPILERPATH = $(TOOLSPATH)/arm/bin
 
 AS = $(abspath $(COMPILERPATH))/arm-none-eabi-as
-CC = $(abspath $(TOOLSPATH))/arm-segger/bin/segger-cc
-GCC = $(abspath $(COMPILERPATH))/arm-none-eabi-gcc
+CC = $(abspath $(COMPILERPATH))/arm-none-eabi-gcc
 CXX = $(abspath $(COMPILERPATH))/arm-none-eabi-g++
 OBJCOPY = $(abspath $(COMPILERPATH))/arm-none-eabi-objcopy
 SIZE = $(abspath $(COMPILERPATH))/arm-none-eabi-size
+
+SCFLAGS = -cc1 -disable-free -disable-llvm-verifier -mrelocation-model static -mconstructor-aliases -x c -fno-caret-diagnostics -fno-diagnostics-fixit-info -triple thumbv7em-none-eabi -target-cpu cortex-m7 -target-feature +strict-align -target-abi aapcs -mfloat-abi hard -target-feature -fp-armv8d16 -target-feature -fp64 -target-feature -vfp2 -target-feature -vfp3d16 -target-feature -vfp4d16sp -fno-signed-char -nostdsysteminc -nobuiltininc -D__SIZEOF_WCHAR_T=4 -D__ARM_ARCH_7EM__ -D__SES_ARM -D__ARM_ARCH_FPV5_SP_D16__ -D__HEAP_SIZE__=0 -D__SES_VERSION=51001 -sys-header-deps -std=gnu17 -O2 -fno-dwarf-directory-asm -fno-builtin -ffunction-sections -fdata-sections -mno-global-merge -fshort-enums -fno-common -emit-obj -I. -isystem/$(TOOLSPATH)/arm-segger/include $(OPTIONS) -flto
+SCC = $(abspath $(TOOLSPATH))/arm-segger/bin/segger-cc
 
 S_FILES := $(wildcard *.S)
 C_FILES := $(wildcard *.c)
@@ -47,7 +49,7 @@ OBJS := $(foreach src,$(SOURCES), $(BUILDDIR)/$(src))
 all: $(TARGET).hex
 
 $(TARGET).elf: $(OBJS) $(MCU_LD)
-	$(GCC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
 %.hex: %.elf
 	$(SIZE) $<
@@ -65,18 +67,18 @@ upload: post_compile
 $(BUILDDIR)/%.o: %.S
 	@echo -e "[AS]\t$<"
 	@mkdir -p "$(dir $@)"
-	@$(GCC) $(SFLAGS) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
+	@$(CC) $(SFLAGS) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
 
 $(BUILDDIR)/startup.o: startup.c
-	@echo -e "[GCC]\t$<"
-	@mkdir -p "$(dir $@)"
-	@$(GCC) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
-
-$(BUILDDIR)/%.o: %.c
 	@echo -e "[CC]\t$<"
 	@mkdir -p "$(dir $@)"
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
+
+$(BUILDDIR)/%.o: %.c
+	@echo -e "[SCC]\t$<"
+	@mkdir -p "$(dir $@)"
 #	@$(CC) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
-	@$(CC) -cc1 -disable-free -disable-llvm-verifier -mrelocation-model static -mconstructor-aliases -x c -fno-caret-diagnostics -fno-diagnostics-fixit-info -triple thumbv7em-none-eabi -target-cpu cortex-m7 -target-feature +strict-align -target-abi aapcs -mfloat-abi hard -target-feature -fp-armv8d16 -target-feature -fp64 -target-feature -vfp2 -target-feature -vfp3d16 -target-feature -vfp4d16sp -fno-signed-char -nostdsysteminc -nobuiltininc -D__SIZEOF_WCHAR_T=4 -D__ARM_ARCH_7EM__ -D__SES_ARM -D__ARM_ARCH_FPV5_SP_D16__ -D__HEAP_SIZE__=0 -D__SES_VERSION=51001 -sys-header-deps -MT "$@" -std=gnu17 -O2 -fno-dwarf-directory-asm -fno-builtin -ffunction-sections -fdata-sections -mno-global-merge -fshort-enums -fno-common "$<" -emit-obj -o "$@" -I. -isystem/$(TOOLSPATH)/arm-segger/include $(OPTIONS)
+	@$(SCC) $(SCFLAGS) -MT "$@" -o "$@" "$<"
 
 $(BUILDDIR)/%.o: %.cpp
 	@echo -e "[CXX]\t$<"

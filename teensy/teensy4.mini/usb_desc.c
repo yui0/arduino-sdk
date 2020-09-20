@@ -35,7 +35,7 @@
 #ifdef NUM_ENDPOINTS
 #include "usb_names.h"
 #include "imxrt.h"
-#include "avr_functions.h"
+//#include "avr_functions.h"
 #include "avr/pgmspace.h"
 
 // At very slow CPU speeds, the OCRAM just isn't fast enough for

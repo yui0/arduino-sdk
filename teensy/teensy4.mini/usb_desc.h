@@ -716,7 +716,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define EP0_SIZE		64
   #define NUM_ENDPOINTS         4
   #define NUM_INTERFACE		4
-  #define SEREMU_INTERFACE      0	// Serial emulation
+  //#define SEREMU_INTERFACE      0	// Serial emulation
   #define SEREMU_TX_ENDPOINT    2
   #define SEREMU_TX_SIZE        64
   #define SEREMU_TX_INTERVAL    1
