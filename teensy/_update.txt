@@ -1,0 +1,15 @@
+unzip -x cores-master.zip
+cd cores-master
+cp -a /root/prog/github/arduino-sdk/teensy/core4.patch kazane.patch
+cp -a /root/prog/github/arduino-sdk/teensy/teensy4.orig .
+diff -Nuarp teensy4.orig teensy4 >core4.patch
+mv teensy4.orig teensy4.orig.old
+mv teensy4 teensy4.orig
+cp -a /root/prog/github/arduino-sdk/teensy/teensy4 .
+cd teensy4
+patch -p1 < ../core4.patch
+cd ..
+#mv core4.patch core4.patch.orig
+#rm teensy4/*.orig
+#diff -Nuarp teensy4.orig teensy4 >core4.patch
+

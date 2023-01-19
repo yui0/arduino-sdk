@@ -5,5 +5,18 @@ cd teensy3
 patch -p1 < ../core.patch
 cd ..
 mv core.patch core.patch.orig
+
+rm teensy3/*.orig
 diff -Nuarp teensy3.orig teensy3 >core.patch
+
+
+rm teensy4/*.{elf,hex}
+diff -Nuarp teensy4.orig teensy4 >core4.patch
+cp -a teensy4 teensy4.orig
+cd teensy4
+patch -p1 < ../core4.patch
+cd ..
+mv core4.patch core4.patch.orig
+rm teensy4/*.orig
+diff -Nuarp teensy4.orig teensy4 >core4.patch
 
