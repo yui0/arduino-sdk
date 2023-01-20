@@ -5,9 +5,9 @@
 /*#include "usb_seremu.h"
 #include "usb_rawhid.h"
 #include "usb_keyboard.h"
-#include "usb_mouse.h"*/
+#include "usb_mouse.h"
 #include "usb_joystick.h"
-/*#include "usb_flightsim.h"
+#include "usb_flightsim.h"
 #include "usb_touch.h"
 #include "usb_midi.h"*/
 //#include "usb_audio.h"

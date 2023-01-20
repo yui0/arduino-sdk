@@ -1,10 +1,11 @@
 # Arduino SDK
 
-:::note info
-Programming Arduino/Teensy in pure C or C++
+[![Docker Hub](https://github.com/yui0/arduino-sdk/actions/workflows/build-and-push-image.yml/badge.svg)](https://github.com/yui0/arduino-sdk/actions/workflows/build-and-push-image.yml)
+[![GPL License](https://img.shields.io/badge/license-GPL-blue.svg?style=flat)](LICENSE)
+
+Development environment for Teensy in pure C or C++
 
 Reference: [https://yui0.github.io/teensy4/](https://yui0.github.io/teensy4/)
-:::
 
 ## Packages to install (Teensy)
 
@@ -23,11 +24,19 @@ $ make blink
 ## How to use with docker (Teensy)
 
 ```bash
+$ docker pull berry0/teensy-dev:latest
+$ docker run --net=host -it -d --name teensy-dev berry0/teensy-dev:latest
+$ docker exec -it teensy-dev /bin/bash
 # cd /arduino-sdk/teensy/tools/
 # echo "yes" | sh setup_segger.sh
 # cd /arduino-sdk/teensy/teensy4
 # make
 # make upload
+# make clean
+# cd /arduino-sdk/teensy/teensy4.mini
+# make
+# make upload
+# make clean
 ```
 
 ## Packages to install (Arduino)
