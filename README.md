@@ -1,10 +1,16 @@
 # Arduino SDK
-Programming Arduino/Teensy in pure C or C++ 
+
+:::note info
+Programming Arduino/Teensy in pure C or C++
+
+Reference: [https://yui0.github.io/teensy4/](https://yui0.github.io/teensy4/)
+:::
 
 ## Packages to install (Teensy)
 
-  - arm-none-eabi-gcc-g++
-
+  - arm-none-eabi-gcc
+  - arm-none-eabi-g++
+  - [Embedded Studio for ARM (Optional)](https://www.segger.com/downloads/embedded-studio)
 
 ## How to use (Teensy)
 
@@ -12,6 +18,16 @@ Programming Arduino/Teensy in pure C or C++
 $ make
 $ make upload
 $ make blink
+```
+
+## How to use with docker (Teensy)
+
+```bash
+# cd /arduino-sdk/teensy/tools/
+# echo "yes" | sh setup_segger.sh
+# cd /arduino-sdk/teensy/teensy4
+# make
+# make upload
 ```
 
 ## Packages to install (Arduino)

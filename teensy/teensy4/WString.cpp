@@ -174,16 +174,8 @@ String & String::copy(const char *cstr, unsigned int length)
 
 void String::move(String &rhs)
 {
-	if (buffer) {
-		if (capacity >= rhs.len) {
-			strcpy(buffer, rhs.buffer);
-			len = rhs.len;
-			rhs.len = 0;
-			return;
-		} else {
-			free(buffer);
-		}
-	}
+	if (&rhs == this) return;
+	if (buffer) free(buffer);
 	buffer = rhs.buffer;
 	capacity = rhs.capacity;
 	len = rhs.len;
@@ -308,6 +300,22 @@ String & String::append(unsigned long num)
 {
 	char buf[11];
 	ultoa(num, buf, 10);
+	append(buf, strlen(buf));
+	return *this;
+}
+
+String & String::append(long long num)
+{
+	char buf[21];
+	lltoa(num, buf, 10);
+	append(buf, strlen(buf));
+	return *this;
+}
+
+String & String::append(unsigned long long num)
+{
+	char buf[21];
+	ulltoa(num, buf, 10);
 	append(buf, strlen(buf));
 	return *this;
 }
@@ -483,6 +491,8 @@ unsigned char String::endsWith( const String &s2 ) const
 /*********************************************/
 /*  Character Access                         */
 /*********************************************/
+
+const char String::zerotermination = 0;
 
 char String::charAt(unsigned int loc) const
 {

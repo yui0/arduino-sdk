@@ -127,7 +127,8 @@ uint32_t set_arm_clock(uint32_t frequency)
 		// TODO: delay needed?
 		CCM_ANALOG_PLL_ARM = CCM_ANALOG_PLL_ARM_ENABLE
 			| CCM_ANALOG_PLL_ARM_DIV_SELECT(mult);
-		while (!(CCM_ANALOG_PLL_ARM & CCM_ANALOG_PLL_ARM_LOCK)) ; // wait for lock
+		while (!(CCM_ANALOG_PLL_ARM & CCM_ANALOG_PLL_ARM_LOCK))
+			; // wait for lock
 		printf("ARM PLL=%x\n", CCM_ANALOG_PLL_ARM);
 	} else {
 		printf("ARM PLL already running at required frequency\n");

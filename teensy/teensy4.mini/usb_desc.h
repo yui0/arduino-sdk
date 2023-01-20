@@ -114,7 +114,6 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
 #if defined(USB_SERIAL)
   #define VENDOR_ID		0x16C0
   #define PRODUCT_ID		0x0483
-  #define DEVICE_CLASS		2	// 2 = Communication Class
   #define MANUFACTURER_NAME	{'T','e','e','n','s','y','d','u','i','n','o'}
   #define MANUFACTURER_NAME_LEN	11
   #define PRODUCT_NAME		{'U','S','B',' ','S','e','r','i','a','l'}
@@ -123,6 +122,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define NUM_ENDPOINTS		4
   #define NUM_USB_BUFFERS	12
   #define NUM_INTERFACE		2
+  #define CDC_IAD_DESCRIPTOR    1       // Serial
   #define CDC_STATUS_INTERFACE	0
   #define CDC_DATA_INTERFACE	1
   #define CDC_ACM_ENDPOINT	2
@@ -133,6 +133,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define CDC_TX_SIZE_480       512
   #define CDC_RX_SIZE_12        64
   #define CDC_TX_SIZE_12        64
+  //#define EXPERIMENTAL_INTERFACE 2
   #define ENDPOINT2_CONFIG	ENDPOINT_RECEIVE_UNUSED + ENDPOINT_TRANSMIT_INTERRUPT
   #define ENDPOINT3_CONFIG	ENDPOINT_RECEIVE_BULK + ENDPOINT_TRANSMIT_UNUSED
   #define ENDPOINT4_CONFIG      ENDPOINT_RECEIVE_UNUSED + ENDPOINT_TRANSMIT_BULK
@@ -683,7 +684,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define EP0_SIZE		64
   #define NUM_ENDPOINTS         4
   #define NUM_INTERFACE		2
-  #define MTP_INTERFACE		0	// MTP Disk
+  #define MTP_INTERFACE		1	// MTP Disk
   #define MTP_TX_ENDPOINT	3
   #define MTP_TX_SIZE_12	64
   #define MTP_TX_SIZE_480	512
@@ -694,7 +695,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define MTP_EVENT_SIZE	16
   #define MTP_EVENT_INTERVAL_12	10	// 10 = 10 ms
   #define MTP_EVENT_INTERVAL_480 7	// 7 = 8 ms
-  #define SEREMU_INTERFACE      1	// Serial emulation
+  #define SEREMU_INTERFACE      0	// Serial emulation
   #define SEREMU_TX_ENDPOINT    2
   #define SEREMU_TX_SIZE        64
   #define SEREMU_TX_INTERVAL    1
@@ -707,31 +708,81 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #define ENDPOINT4_CONFIG	ENDPOINT_RECEIVE_INTERRUPT + ENDPOINT_TRANSMIT_UNUSED
 
 #elif defined(USB_AUDIO)
+  // lsusb -d 16c0: -v
+  #define SUPPORT_UAC2
+  //#define DEBUG		// add usb_seremu.*, cat /dev/hidraw1
+
   #define VENDOR_ID		0x16C0
   #define PRODUCT_ID		0x04D2
-  #define MANUFACTURER_NAME	{'T','e','e','n','s','y','d','u','i','n','o'}
-  #define MANUFACTURER_NAME_LEN	11
-  #define PRODUCT_NAME		{'T','e','e','n','s','y',' ','A','u','d','i','o'}
-  #define PRODUCT_NAME_LEN	12
+  #define DEVICE_CLASS		0xEF	// +
+  #define DEVICE_SUBCLASS	0x02	// +
+  #define DEVICE_PROTOCOL	0x01	// +
+  #define MANUFACTURER_NAME	{'B','e','r','r','y',' ','I','n','c','.'}
+  #define MANUFACTURER_NAME_LEN	10
+  #define PRODUCT_NAME		{'K','a','z','a','n','e','+'}
+  #define PRODUCT_NAME_LEN	7
   #define EP0_SIZE		64
-  #define NUM_ENDPOINTS         4
-  #define NUM_INTERFACE		4
-  //#define SEREMU_INTERFACE      0	// Serial emulation
-  #define SEREMU_TX_ENDPOINT    2
-  #define SEREMU_TX_SIZE        64
-  #define SEREMU_TX_INTERVAL    1
-  #define SEREMU_RX_ENDPOINT    2
-  #define SEREMU_RX_SIZE        32
-  #define SEREMU_RX_INTERVAL    2
+#ifdef SUPPORT_UAC2
+ #ifdef DEBUG
+  #define NUM_INTERFACE		3	// Total of bInterfaceNumber (SEREMU 1 + AUDIO 2)
   #define AUDIO_INTERFACE	1	// Audio (uses 3 consecutive interfaces)
-  #define AUDIO_TX_ENDPOINT     3
-  #define AUDIO_TX_SIZE         180
-  #define AUDIO_RX_ENDPOINT     3
-  #define AUDIO_RX_SIZE         180
+
+  #define SEREMU_INTERFACE	0	// Serial emulation for debug (Serial.print & cat /dev/hidraw0)
+  #define SEREMU_TX_ENDPOINT	2
+  #define SEREMU_TX_SIZE	4
+  #define SEREMU_TX_INTERVAL	1
+  #define SEREMU_RX_ENDPOINT	2
+  #define SEREMU_RX_SIZE	32
+  #define SEREMU_RX_INTERVAL	2
+ #else
+  #define NUM_INTERFACE		2	// Total of bInterfaceNumber (AUDIO 2)
+  #define AUDIO_INTERFACE	0	// Audio (uses 3 consecutive interfaces)
+ #endif
+
+  #define NUM_ENDPOINTS		4	// ??? 2
+  #define BCD_DEVICE		2	//
+  #define CLOCK_SOURCE_ID	0x10	// id 16
+  #define INPUT_TERMINAL_ID	0x20	// id 32
+  #define FEATURE_UNIT_ID	0x30	// id 48
+  #define OUTPUT_TERMINAL_ID	0x40	// id 64
+
+  #define AUDIO_RX_SIZE2	180	// Full Speed (1ms) / High Speed (125us)
+  //#define AUDIO_RX_SIZE2	192	// Full Speed (1ms) / High Speed (125us)
+  //#define AUDIO_RX_SIZE2	416	// Full Speed (1ms) / High Speed (125us)
+  //#define AUDIO_RX_SIZE2	512	// Full Speed (1ms) / High Speed (125us)
+  //-#define AUDIO_TX_ENDPOINT	3	// Endpoint 3 (2 or more)
+  //-#define AUDIO_TX_SIZE	180
+  #define AUDIO_RX_ENDPOINT	3	// Endpoint 3 (2 or more)
+  // https://www.itf.co.jp/tech/usb-audio/uac1-0-transfer-size
+  //#define AUDIO_RX_SIZE	784	// Full Speed (1ms) / High Speed (125us)
+  #define AUDIO_RX_SIZE		776	// Full Speed (1ms) / High Speed (125us)
+  //x #define AUDIO_RX_SIZE	416	// Full Speed (1ms) / High Speed (125us)
+  //#define AUDIO_RX_SIZE	192	// Full Speed (1ms) / High Speed (125us)
+//  #define AUDIO_RX_SIZE	180	// Full Speed (1ms) / High Speed (125us)
+  #define AUDIO_SYNC_ENDPOINT	4	// Endpoint 4 for TX (2 or more)
+  //#define ENDPOINT2_CONFIG	ENDPOINT_RECEIVE_INTERRUPT + ENDPOINT_TRANSMIT_INTERRUPT
+  #define ENDPOINT3_CONFIG	ENDPOINT_RECEIVE_ISOCHRONOUS
+  #define ENDPOINT4_CONFIG	ENDPOINT_TRANSMIT_ISOCHRONOUS
+#else
+  #define NUM_ENDPOINTS		4
+  #define NUM_INTERFACE		4
+  #define SEREMU_INTERFACE	0	// Serial emulation
+  #define SEREMU_TX_ENDPOINT	2
+  #define SEREMU_TX_SIZE	64
+  #define SEREMU_TX_INTERVAL	1
+  #define SEREMU_RX_ENDPOINT	2
+  #define SEREMU_RX_SIZE	32
+  #define SEREMU_RX_INTERVAL	2
+  #define AUDIO_INTERFACE	1	// Audio (uses 3 consecutive interfaces)
+  #define AUDIO_TX_ENDPOINT	3
+  #define AUDIO_TX_SIZE		180
+  #define AUDIO_RX_ENDPOINT	3
+  #define AUDIO_RX_SIZE		180
   #define AUDIO_SYNC_ENDPOINT	4
   #define ENDPOINT2_CONFIG	ENDPOINT_RECEIVE_INTERRUPT + ENDPOINT_TRANSMIT_INTERRUPT
   #define ENDPOINT3_CONFIG	ENDPOINT_RECEIVE_ISOCHRONOUS + ENDPOINT_TRANSMIT_ISOCHRONOUS
   #define ENDPOINT4_CONFIG	ENDPOINT_RECEIVE_UNUSED + ENDPOINT_TRANSMIT_ISOCHRONOUS
+#endif
 
 #elif defined(USB_MIDI_AUDIO_SERIAL)
   #define VENDOR_ID		0x16C0

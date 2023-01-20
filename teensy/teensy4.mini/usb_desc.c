@@ -36,6 +36,7 @@
 #include "usb_names.h"
 #include "imxrt.h"
 //#include "avr_functions.h"
+char *ultoa(unsigned long val, char *buf, int radix);
 #include "avr/pgmspace.h"
 
 // At very slow CPU speeds, the OCRAM just isn't fast enough for
@@ -72,6 +73,21 @@
 #define LSB(n) ((n) & 255)
 #define MSB(n) (((n) >> 8) & 255)
 
+#ifdef CDC_IAD_DESCRIPTOR
+#ifndef DEVICE_CLASS
+#define DEVICE_CLASS 0xEF
+#endif
+#ifndef DEVICE_SUBCLASS
+#define DEVICE_SUBCLASS 0x02
+#endif
+#ifndef DEVICE_PROTOCOL
+#define DEVICE_PROTOCOL 0x01
+#endif
+#endif
+
+
+// http://cache.freescale.com/files/32bit/doc/app_note/AN4665.pdf
+// http://ik1-342-31132.vs.sakura.ne.jp/~uaa/gomitext//2016/20160117/ah01b.txt
 // USB Device Descriptor.  The USB host reads this first, to learn
 // what type of device is connected.
 static uint8_t device_descriptor[] = {
@@ -605,7 +621,11 @@ static uint8_t flightsim_report_desc[] = {
 
 #define AUDIO_INTERFACE_DESC_POS	KEYMEDIA_INTERFACE_DESC_POS+KEYMEDIA_INTERFACE_DESC_SIZE
 #ifdef  AUDIO_INTERFACE
+#ifdef SUPPORT_UAC2
+#define AUDIO_INTERFACE_DESC_SIZE	/*9+*/8+9+9+8+0x11+0x12+0x0c+9 +9+0x10+6+7+8+7 +9+0x10+6+7+8+7
+#else
 #define AUDIO_INTERFACE_DESC_SIZE	8 + 9+10+12+9+12+10+9 + 9+9+7+11+9+7 + 9+9+7+11+9+7+9
+#endif
 #else
 #define AUDIO_INTERFACE_DESC_SIZE	0
 #endif
@@ -618,7 +638,15 @@ static uint8_t flightsim_report_desc[] = {
 #define MULTITOUCH_INTERFACE_DESC_SIZE	0
 #endif
 
-#define CONFIG_DESC_SIZE		MULTITOUCH_INTERFACE_DESC_POS+MULTITOUCH_INTERFACE_DESC_SIZE
+#define EXPERIMENTAL_INTERFACE_DESC_POS	MULTITOUCH_INTERFACE_DESC_POS+MULTITOUCH_INTERFACE_DESC_SIZE
+#ifdef  EXPERIMENTAL_INTERFACE
+#define EXPERIMENTAL_INTERFACE_DESC_SIZE 9+7+7
+#define EXPERIMENTAL_HID_DESC_OFFSET	MULTITOUCH_INTERFACE_DESC_POS+9
+#else
+#define EXPERIMENTAL_INTERFACE_DESC_SIZE 0
+#endif
+
+#define CONFIG_DESC_SIZE		EXPERIMENTAL_INTERFACE_DESC_POS+EXPERIMENTAL_INTERFACE_DESC_SIZE
 
 
 
@@ -627,7 +655,7 @@ static uint8_t flightsim_report_desc[] = {
 // **************************************************************
 
 // USB Configuration Descriptor.  This huge descriptor tells all
-// of the devices capbilities.
+// of the devices capabilities.
 
 PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
         // configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
@@ -638,8 +666,13 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
         NUM_INTERFACE,                          // bNumInterfaces
         1,                                      // bConfigurationValue
         0,                                      // iConfiguration
-        0xC0,                                   // bmAttributes
-        50,                                     // bMaxPower
+#ifdef SELF_POWERED
+	192,					// bmAttributes
+	0,					// bMaxPower
+#else
+	0xc0,					// bmAttributes
+	50,					// bMaxPower
+#endif
 
 #ifdef CDC_IAD_DESCRIPTOR
         // interface association descriptor, USB ECN, Table 9-Z
@@ -1309,7 +1342,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
         0x06,                                   // bInterfaceClass (0x06 = still image)
         0x01,                                   // bInterfaceSubClass
         0x01,                                   // bInterfaceProtocol
-        0,                                      // iInterface
+        4,                                      // iInterface
         // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
         7,                                      // bLength
         5,                                      // bDescriptorType
@@ -1364,6 +1397,216 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
 #endif // KEYMEDIA_INTERFACE
 
 #ifdef AUDIO_INTERFACE
+#ifdef SUPPORT_UAC2
+	// Standard Interface Association Descriptor
+	0x08,					// bLength
+	0x0b,					// bDescriptorType
+	AUDIO_INTERFACE,			// bFirstInterface
+	NUM_INTERFACE,				// bInterfaceCount: 0x02
+	0x01,					// bFunctionClass(0x01): AUDIO
+	0x00,					// bFunctionSubClass(0x00)
+	0x20,					// bFunctionProtocol(0x2000): 2.0 AF_VERSION_02_00
+	0x00,					// iInterface: 0x00 (No String Descriptor)
+
+	// Standard Audio Control Interface Descriptor(4.7.1)
+	0x09,					// bLength
+	0x04,					// bDescriptorType(0x04): INTERFACE
+	AUDIO_INTERFACE,			// bInterfaceNumber(0x00)
+	0x00,					// bAlternateSetting(0x00)
+	0x00,					// bNumEndpoints(0x00)
+	0x01,					// bInterfaceClass(0x01): AUDIO
+	0x01,					// bInterfaceSubClass(0x01): AUDIOCONTROL
+	0x20,					// bInterfaceProtocol(0x20): IP 2.0 IP_VERSION_02_00
+	0x00,					// iInterface: 0x00 (No String Descriptor)
+	// Class-Specific Audio Control Interface Header Descriptor(4.7.2)
+	0x09,					// bLength
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x01,					// bDescriptorSubType(0x01): HEADER
+	0x00, 0x02,				// bcdADC(0x0200): 2.0
+	0x01,					// bCategory(0x01): DESKTOP_SPEAKER
+	0x40, 0x00,				// wTotalLength(64): 9 + 8 + 17 + 18 + 12 (2 channels)
+	0x00,					// bmControls(0b00000000)
+	// Clock Source Descriptor(4.7.2.1)
+	0x08,					// bLength
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x0A,					// bDescriptorSubType(0x0A): CLOCK_SOURCE
+	CLOCK_SOURCE_ID,			// bClockID(0x10): CLOCK_SOURCE_ID
+	0x01,					// bmAttributes(0x01): internal fixed clock
+	0x07,					// bmControls(0x07): clock frequency control: 0b11 - host programmable
+						//		     clock validity control: 0b01 - host read only
+	0x00,					// bAssocTerminal(0x00)
+//	0x01,					// iClockSource(0x01): Not requested
+	0x00,					// iClockSource: 0x00 (No String Descriptor)
+	// Input Terminal Descriptor(4.7.2.4)
+	0x11,					// bLength(17)
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x02,					// bDescriptorSubType(0x02): INPUT_TERMINAL
+	INPUT_TERMINAL_ID,			// bTerminalID(0x20): INPUT_TERMINAL_ID
+	0x01, 0x01,				// wTerminalType(0x0101): USB streaming
+	0x00,					// bAssocTerminal(0x00)
+	CLOCK_SOURCE_ID,			// bCSourceID(0x10): CLOCK_SOURCE_ID
+	0x02,					// bNrChannels
+	0x03, 0x00, 0x00, 0x00,			// bmChannelConfig(0x03): D0+D1(Front Left + Front Right)
+	0x00,					// iChannelNames
+	0x00, 0x00,				// bmControls(0x0000)
+//	0x02,					// iTerminal(0x02): Not requested
+	0x00,					// iTerminal: 0x00 (No String Descriptor)
+	// Feature Unit Descriptor(4.7.2.8)
+	0x12,					// bLength: 6 + (ch + 1) * 4, 2 channel
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x06,					// bDescriptorSubType(0x06): FEATURE_UNIT
+	FEATURE_UNIT_ID,			// bUnitID(0x30): FEATURE_UNIT_ID
+	INPUT_TERMINAL_ID,			// bSourceID(0x20): INPUT_TERMINAL_ID
+	0x0F, 0x00, 0x00, 0x00,			// bmaControls(0)(0x0000000F): Master Channel 0
+						//	0b11: Mute read/write
+						//	0b1100: Volume read/write
+	0x00, 0x00, 0x00, 0x00,			// bmaControls(1)(0x00000000): Logical Channel 1
+	0x00, 0x00, 0x00, 0x00,			// bmaControls(2)(0x00000000): Logical Channel 2
+	0x00,					// iFeature: 0x00 (No String Descriptor)
+	// Output Terminal Descriptor(4.7.2.5)
+	0x0C,					// bLength(12)
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x03,					// bDescriptorSubType(0x03): OUTPUT_TERMINAL
+	OUTPUT_TERMINAL_ID,			// bTerminalID(0x40)
+//	0x01, 0x01,				// wTerminalType(0x0101): USB_STREAMING
+	0x02, 0x06,				// wTerminalType(0x0602): Digital Audio Interface
+	0x00,					// bAssocTerminal(0x00): no association
+	FEATURE_UNIT_ID,			// bSourceID(0x30): FEATURE_UNIT_ID
+	CLOCK_SOURCE_ID,			// bCSourceID(0x10): CLOCK_SOURCE_ID 
+	0x00, 0x00,				// bmControls(0x0000)
+	0x00,					// iTerminal: 0x00 (No String Descriptor)
+
+	// AUDIO STREAMING Interface
+	// Standard AS Interface Descriptor(4.9.1)
+	// Interface 1, Alternate 0
+	// default alternate setting with 0 bandwidth
+	0x09,					// bLength
+	0x04,					// bDescriptorType(0x04): INTERFACE
+	AUDIO_INTERFACE+1,			// bInterfaceNumber(0x01)
+	0x00,					// bAlternateSetting(0x00)
+	0x00,					// bNumEndpoints(0x00)
+	0x01,					// bInterfaceClass(0x01): AUDIO
+	0x02,					// bInterfaceSubClass(0x02): AUDIOSTREAMING
+	0x20,					// bInterfaceProtocol(0x20): IP 2.0
+	0x00,					// iInterface: 0x00 (No String Descriptor)
+
+// Alternate 1 [44.1kHz-/16bit]
+	// Standard AS Interface Descriptor(4.9.1)
+	// Interface 1, Alternate 1
+	// alternate interface for data streaming
+	0x09,					// bLength
+	0x04,					// bDescriptorType(0x04): INTERFACE
+	AUDIO_INTERFACE+1,			// bInterfaceNumber(0x01)
+	0x01,					// bAlternateSetting(0x01)
+	0x02,					// bNumEndpoints(0x02)
+	0x01,					// bInterfaceClass(0x01): AUDIO
+	0x02,					// bInterfaceSubClass(0x02): AUDIO_STREAMING
+	0x20,					// bInterfaceProtocol(0x20): IP 2.0
+	0x00,					// iInterface: 0x00 (No String Descriptor)
+	// Class-Specific AS Interface Descriptor(4.9.2)
+	0x10,					// bLength
+	0x24,					// bDescriptorType(0x024): CS_INTERFACE
+	0x01,					// bDescriptorSubType(0x01): AS_GENERAL
+	INPUT_TERMINAL_ID,			// bTerminalLink(0x20): INPUT_TERMINAL_ID
+	0x00,					// bmControls(0x00)
+	0x01,					// bFormatType(0x01): FORMAT_TYPE_I
+	0x01, 0x00, 0x00, 0x00,			// bmFormats(0x00000001): PCM
+	0x02,					// bNrChannels(0x02): NB_CHANNELS
+	0x03, 0x00, 0x00, 0x00,			// bmChannelConfig(0x00000003)
+//	0x00, 0x00, 0x00, 0x00,			// bmChannelConfig(0x00000000): mono
+	0x00,					// iChannelNames: 0x00 (No String Descriptor)
+	// Type I Format Type Descriptor(2.3.1.6 - Audio Formats)
+	0x06,					// bLength
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x02,					// bDescriptorSubtype(0x02): FORMAT_TYPE
+	0x01,					// bFormatType(0x01): FORMAT_TYPE_I
+	0x02,					// bSubSlotSize: 2 bytes
+	0x10,					// bBitResolution: 16 bits per sample
+	// Class-Specific AS IsochronousAudio Data Endpoint Descriptor(4.10.1.2)
+	0x08,					// bLength(8)
+	0x25,					// bDescriptorType(0x25): CS_ENDPOINT
+	0x01,					// bDescriptorSubtype(0x01): EP_GENERAL
+	0x00,					// bmAttributes(0x00): MaxPacketsOnly = FALSE
+	0x00,					// bmControls(0x00)
+	0x02,					// bLockDelayUnits: Decoded PCM samples
+	0x08, 0x00,				// wLockDelay(0x0000)
+//	0x02, 0x00,				// wLockDelay(0x0000)
+	// Standard AS Isochronous Audio Data Endpoint Descriptor(4.10.1.1)
+	0x07,					// bLength
+	0x05,					// bDescriptorType(0x05): ENDPOINT_DESCRIPTOR
+	AUDIO_RX_ENDPOINT,			// bEndpointAddress(0x04): EP04_OUT
+	0x05,					// bmAttributes(0x05): iso+asynch+data
+	LSB(AUDIO_RX_SIZE), MSB(AUDIO_RX_SIZE),	// wMaxPacketSize
+	0x01,					// bInterval: 0x01 (1 ms)
+	// Feedback EP
+	// Standard AS Isochronous Audio Data Endpoint Descriptor(4.10.1.1)
+	0x07,					// bLength
+	0x05,					// bDescriptorType(0x05): ENDPOINT_DESCRIPTOR
+	AUDIO_SYNC_ENDPOINT | 0x80,		// bEndpointAddress(0x85): EP05_IN
+	0x11,					// bmAttributes(0x11): iso+feedback
+	0x04, 0x00,				// wMaxPacketSize(0x0004)
+	0x04,					// bInterval: 0x04 (4 ms)
+//	0x01,					// bInterval: Only values <= 1 frame (8) supported by MS
+
+// Alternate 2 [44.1kHz-/32bit]
+	// Standard AS Interface Descriptor(4.9.1)
+	// Interface 1, Alternate 2
+	// alternate interface for data streaming
+	0x09,					// bLength
+	0x04,					// bDescriptorType(0x04): INTERFACE
+	AUDIO_INTERFACE+1,			// bInterfaceNumber(0x01)
+	0x02,					// bAlternateSetting(0x02)
+	0x02,					// bNumEndpoints(0x02)
+	0x01,					// bInterfaceClass(0x01): AUDIO
+	0x02,					// bInterfaceSubClass(0x02): AUDIO_STREAMING
+	0x20,					// bInterfaceProtocol(0x20): IP 2.0
+	0x00,					// iInterface: 0x00 (No String Descriptor)
+	// Class-Specific AS Interface Descriptor(4.9.2)
+	0x10,					// bLength
+	0x24,					// bDescriptorType(0x024): CS_INTERFACE
+	0x01,					// bDescriptorSubType(0x01): AS_GENERAL
+	INPUT_TERMINAL_ID,			// bTerminalLink(0x20): INPUT_TERMINAL_ID
+	0x00,					// bmControls(0x00)
+	0x01,					// bFormatType(0x01): FORMAT_TYPE_I
+//	0x01, 0x00, 0x00, 0x00,			// bmFormats(0x00000001): PCM
+	0x04, 0x00, 0x00, 0x00,			// bmFormats(0x00000004): IEEE_FLOAT
+	0x02,					// bNrChannels(0x02): NB_CHANNELS
+	0x03, 0x00, 0x00, 0x00,			// bmChannelConfig(0x00000003)
+	0x00,					// iChannelNames: 0x00 (No String Descriptor)
+	// Type I Format Type Descriptor(2.3.1.6 - Audio Formats)
+	0x06,					// bLength
+	0x24,					// bDescriptorType(0x24): CS_INTERFACE
+	0x02,					// bDescriptorSubtype(0x02): FORMAT_TYPE
+	0x01,					// bFormatType(0x01): FORMAT_TYPE_I (PCM)
+	0x04,					// bSubSlotSize: 4 bytes
+//	0x18,					// bBitResolution: 24 bits per sample (PCM_FORMAT_S24_LE)
+	0x20,					// bBitResolution: 32 bits per sample (PCM_FORMAT_S32_LE)
+	// Class-Specific AS IsochronousAudio Data Endpoint Descriptor(4.10.1.2)
+	0x08,					// bLength(8)
+	0x25,					// bDescriptorType(0x25): CS_ENDPOINT
+	0x01,					// bDescriptorSubtype(0x01): EP_GENERAL
+	0x00,					// bmAttributes(0x00): MaxPacketsOnly = FALSE
+	0x00,					// bmControls(0x00)
+	0x02,					// bLockDelayUnits: Decoded PCM samples
+//	0x08, 0x00,				// wLockDelay(0x0000) [underrun??]
+	0x02, 0x00,				// wLockDelay(0x0000)
+	// Standard AS Isochronous Audio Data Endpoint Descriptor(4.10.1.1)
+	0x07,					// bLength
+	0x05,					// bDescriptorType(0x05): ENDPOINT_DESCRIPTOR
+	AUDIO_RX_ENDPOINT,			// bEndpointAddress(0x04): EP04_OUT
+	0x05,					// bmAttributes(0x05): iso+asynch+data
+	LSB(AUDIO_RX_SIZE2),MSB(AUDIO_RX_SIZE2),// wMaxPacketSize
+//	LSB(776),MSB(776),			// wMaxPacketSize
+	0x01,					// bInterval(0x01): FULL_SPEED_DEVICE 2^x ms
+	// Standard AS Isochronous Audio Data Endpoint Descriptor(4.10.1.1)
+	0x07,					// bLength
+	0x05,					// bDescriptorType(0x05): ENDPOINT_DESCRIPTOR
+	AUDIO_SYNC_ENDPOINT | 0x80,		// bEndpointAddress(0x85): EP05_IN
+	0x11,					// bmAttributes(0x11): iso+feedback
+	0x04, 0x00,				// wMaxPacketSize(0x0004)
+//	0x01,					// bInterval(0x01): FULL_SPEED_DEVICE 2^x ms
+	0x04,					// bInterval(0x01): FULL_SPEED_DEVICE 2^x ms
+#else
 	// configuration for 480 Mbit/sec speed
         // interface association descriptor, USB ECN, Table 9-Z
         8,                                      // bLength
@@ -1582,6 +1825,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
 	7,					// bRefresh,
 	0,					// bSynchAddress
 #endif
+#endif
 
 #ifdef MULTITOUCH_INTERFACE
 	// configuration for 480 Mbit/sec speed
@@ -1611,10 +1855,39 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE] = {
         0x03,                                   // bmAttributes (0x03=intr)
         MULTITOUCH_SIZE, 0,                     // wMaxPacketSize
         4,                                      // bInterval, 4 = 1ms
-#endif // KEYMEDIA_INTERFACE
+#endif // MULTITOUCH_INTERFACE
+
+#ifdef EXPERIMENTAL_INTERFACE
+	// configuration for 480 Mbit/sec speed
+        // interface descriptor, USB spec 9.6.5, page 267-269, Table 9-12
+        9,                                      // bLength
+        4,                                      // bDescriptorType
+        EXPERIMENTAL_INTERFACE,                 // bInterfaceNumber
+        0,                                      // bAlternateSetting
+        2,                                      // bNumEndpoints
+        0xFF,                                   // bInterfaceClass (0xFF = Vendor)
+        0x6A,                                   // bInterfaceSubClass
+        0xFF,                                   // bInterfaceProtocol
+        0,                                      // iInterface
+        // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
+        7,                                      // bLength
+        5,                                      // bDescriptorType
+        1 | 0x80,                               // bEndpointAddress
+        0x02,                                   // bmAttributes (0x02=bulk)
+        LSB(512), MSB(512),                     // wMaxPacketSize
+        1,                                      // bInterval
+        // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
+        7,                                      // bLength
+        5,                                      // bDescriptorType
+        1,                                      // bEndpointAddress
+        0x02,                                   // bmAttributes (0x02=bulk)
+        LSB(512), MSB(512),                     // wMaxPacketSize
+        1,                                      // bInterval
+#endif // EXPERIMENTAL_INTERFACE
 };
 
 
+#ifndef SUPPORT_UAC2
 PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE] = {
         // configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
         9,                                      // bLength;
@@ -2597,8 +2870,37 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE] = {
         0x03,                                   // bmAttributes (0x03=intr)
         MULTITOUCH_SIZE, 0,                     // wMaxPacketSize
         1,                                      // bInterval
-#endif // KEYMEDIA_INTERFACE
+#endif // MULTITOUCH_INTERFACE
+
+#ifdef EXPERIMENTAL_INTERFACE
+	// configuration for 12 Mbit/sec speed
+        // interface descriptor, USB spec 9.6.5, page 267-269, Table 9-12
+        9,                                      // bLength
+        4,                                      // bDescriptorType
+        EXPERIMENTAL_INTERFACE,                 // bInterfaceNumber
+        0,                                      // bAlternateSetting
+        2,                                      // bNumEndpoints
+        0xFF,                                   // bInterfaceClass (0xFF = Vendor)
+        0x6A,                                   // bInterfaceSubClass
+        0xFF,                                   // bInterfaceProtocol
+        0,                                      // iInterface
+        // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
+        7,                                      // bLength
+        5,                                      // bDescriptorType
+        1 | 0x80,                               // bEndpointAddress
+        0x02,                                   // bmAttributes (0x02=bulk)
+        LSB(64), MSB(64),                       // wMaxPacketSize
+        1,                                      // bInterval
+        // endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
+        7,                                      // bLength
+        5,                                      // bDescriptorType
+        1,                                      // bEndpointAddress
+        0x02,                                   // bmAttributes (0x02=bulk)
+        LSB(64), MSB(64),                       // wMaxPacketSize
+        1,                                      // bInterval
+#endif // EXPERIMENTAL_INTERFACE
 };
+#endif
 
 
 __attribute__ ((section(".dmabuffers"), aligned(32)))
@@ -2689,7 +2991,11 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
 	{0x0100, 0x0000, device_descriptor, sizeof(device_descriptor)},
 	{0x0600, 0x0000, qualifier_descriptor, sizeof(qualifier_descriptor)},
 	{0x0200, 0x0000, usb_config_descriptor_480, CONFIG_DESC_SIZE},
+#ifndef SUPPORT_UAC2
 	{0x0700, 0x0000, usb_config_descriptor_12, CONFIG_DESC_SIZE},
+#else
+	{0x0700, 0x0000, usb_config_descriptor_480, CONFIG_DESC_SIZE},
+#endif
 #ifdef SEREMU_INTERFACE
 	{0x2200, SEREMU_INTERFACE, seremu_report_desc, sizeof(seremu_report_desc)},
 	{0x2100, SEREMU_INTERFACE, usb_config_descriptor_480+SEREMU_HID_DESC_OFFSET, 9},
@@ -2731,10 +3037,6 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
         {0x0303, 0x0409, (const uint8_t *)&usb_string_serial_number, 0},
 	{0, 0, NULL, 0}
 };
-
-
-
-
 
 #endif // NUM_ENDPOINTS
 //#endif // F_CPU >= 20 MHz

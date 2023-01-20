@@ -42,9 +42,9 @@ bool EventResponder::runningFromYield = false;
 
 // TODO: interrupt disable/enable needed in many places!!!
 // BUGBUG: See if file name order makes difference?
-uint8_t _serialEvent_default __attribute__((weak)) PROGMEM = 0 ;	
-uint8_t _serialEventUSB1_default __attribute__((weak)) PROGMEM = 0 ;	
-uint8_t _serialEventUSB2_default __attribute__((weak)) PROGMEM = 0 ;	
+extern const uint8_t _serialEvent_default __attribute__((weak)) PROGMEM = 0 ;
+extern const uint8_t _serialEventUSB1_default __attribute__((weak)) PROGMEM = 0 ;
+extern const uint8_t _serialEventUSB2_default __attribute__((weak)) PROGMEM = 0 ;
 
 void EventResponder::triggerEventNotImmediate()
 {
@@ -347,6 +347,13 @@ extern "C" void systick_isr(void)
 	systick_cycle_count = ARM_DWT_CYCCNT;
 	systick_millis_count++;
 }
+
+// Entry to any ARM exception clears the LDREX exclusive access flag.
+// So we do not need to do anything with "systick_safe_read" here, as
+// this code depends on this Cortex-M7 hardware feature to cause any
+// STREX instruction to return 1 (fail status) after returning to
+// main program or lower priority interrupts.
+//  https://developer.arm.com/documentation/dui0646/c/the-cortex-m7-processor/memory-model/synchronization-primitives
 
 extern "C" void systick_isr_with_timer_events(void)
 {
