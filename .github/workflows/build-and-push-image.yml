@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: berry0/odrive-cli
+          images: berry0/teensy-dev
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
